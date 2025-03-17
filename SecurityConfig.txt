@@ -1,0 +1,42 @@
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.saml2.provider.service.registration.Saml2ServiceProviderRegistration;
+import org.springframework.security.saml2.provider.service.registration.Saml2ServiceProviderRegistrationRepository;
+import org.springframework.security.saml2.provider.service.registration.InMemorySaml2ServiceProviderRegistrationRepository;
+
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .authorizeRequests()
+            .antMatchers("/").permitAll()
+            .anyRequest().authenticated()
+            .and()
+            .saml2Login()
+            .loginPage("/saml/login")
+            .and()
+            .logout()
+            .logoutSuccessUrl("/")
+            .permitAll();
+
+        return http.build();
+    }
+
+    @Bean
+    public Saml2ServiceProviderRegistrationRepository saml2ServiceProviderRegistrationRepository() {
+        Saml2ServiceProviderRegistration registration = Saml2ServiceProviderRegistration.withRegistrationId("samltest")
+            .entityId("your-sp-entity-id") // Replace with your SP entity ID
+            .assertionConsumerServiceLocation("http://localhost:8080/login/saml2/sso/samltest") // Update this URL
+            .singleLogoutServiceLocation("http://localhost:8080/logout/saml2/sso/samltest") // Update this URL
+            .metadataLocation("https://samltest.com/saml/idp") // SAMLTest IdP metadata URL
+            .build();
+
+        return new InMemorySaml2ServiceProviderRegistrationRepository(registration);
+    }
+}
