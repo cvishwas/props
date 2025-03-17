@@ -1,0 +1,170 @@
+Sure! Below is a complete example of how to set up a Spring Boot application using Spring Security SAML2 with the spring-security-saml2-service-provider dependency version 6.4.3. This will allow you to authenticate against an Identity Provider (IdP) like SAMLTest.com.
+
+Step 1: Create a New Spring Boot Project
+
+You can create a new Spring Boot project using Spring Initializr or your IDE. Here's how to do it with Spring Initializr:
+
+Visit Spring Initializr: Go to https://start.spring.io/.
+
+Project Metadata:
+   Project: Maven Project
+   Language: Java
+   Spring Boot: Choose the latest stable version (e.g., 3.x.x).
+   Group: com.example
+   Artifact: saml-demo
+   Name: saml-demo
+   Description: Demo project for Spring Boot SAML 2 with SAMLTest
+   Package name: com.example.samldemo
+   Packaging: Jar
+   Java: Choose your Java version (11 or later).
+
+Add Dependencies:
+   Spring Web
+   Spring Security
+   Spring Security SAML2 Service Provider
+   Spring Boot DevTools (optional, for development convenience)
+
+Generate the Project: Click on the "Generate" button to download the project as a ZIP file. Unzip it into your desired directory.
+
+Step 2: Update pom.xml
+
+Here’s a complete pom.xml file for your Spring Boot application using Spring Security SAML2 Service Provider version 6.4.3:
+
+    4.0.0
+
+    com.example
+    saml-demo
+    0.0.1-SNAPSHOT
+    jar
+
+    saml-demo
+    Demo project for Spring Boot SAML 2 with SAMLTest
+
+        org.springframework.boot
+        spring-boot-starter-parent
+        3.1.0
+
+        17
+
+            org.springframework.boot
+            spring-boot-starter-web
+
+            org.springframework.boot
+            spring-boot-starter-security
+
+            org.springframework.security
+            spring-security-saml2-service-provider
+            6.4.3
+
+            org.springframework.boot
+            spring-boot-devtools
+            runtime
+            true
+
+            org.thymeleaf
+            thymeleaf-spring5
+
+                org.springframework.boot
+                spring-boot-maven-plugin
+
+Step 3: Create Security Configuration
+
+Create a new Java class for your Spring Security configuration. Here's an example SecurityConfig.java:
+
+package com.example.samldemo.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.saml2.provider.service.registration.Saml2ServiceProviderRegistration;
+import org.springframework.security.saml2.provider.service.metadata.MetadataGeneratorFilter;
+
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .authorizeRequests()
+            .antMatchers("/").permitAll()
+            .anyRequest().authenticated()
+            .and()
+            .saml2Login()
+            .loginPage("/saml/login")
+            .and()
+            .logout()
+            .logoutSuccessUrl("/")
+            .permitAll();
+
+        return http.build();
+    }
+
+    @Bean
+    public Saml2ServiceProviderRegistration saml2ServiceProviderRegistration() {
+        return Saml2ServiceProviderRegistration.withRegistrationId("samltest")
+            .entityId("your-sp-entity-id") // Replace with your SP entity ID
+            .assertionConsumerServiceLocation("http://localhost:8080/login/saml2/sso/samltest") // Update this URL
+            .singleLogoutServiceLocation("http://localhost:8080/logout/saml2/sso/samltest") // Update this URL
+            .metadataLocation("https://samltest.com/saml/idp") // SAMLTest IdP metadata URL
+            .build();
+    }
+}
+
+Step 4: Create a Simple Controller
+
+Create a simple controller to handle requests, e.g., HomeController.java:
+
+package com.example.samldemo.controller;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+
+@Controller
+public class HomeController {
+
+    @GetMapping("/")
+    public String home() {
+        return "index";  // Return a view for the home page
+    }
+
+    @GetMapping("/saml/login")
+    public String samlLogin() {
+        return "redirect:/login/saml2/sso/samltest"; // Redirect to SAML login
+    }
+}
+
+Step 5: Create Views
+
+Create a basic Thymeleaf template for your home page. Create the directory structure: src/main/resources/templates, and add an index.html file:
+
+    SAML Demo
+
+    Welcome to the SAML Demo
+    Login with SAML
+
+Step 6: Run the Application
+
+Build and Run: Use your IDE or command line to run the Spring Boot application. You can run it using:
+      mvn spring-boot:run
+  
+
+Access the Application: Open your browser and navigate to http://localhost:8080/. You should see your home page.
+
+Initiate SAML Authentication: Click on the "Login with SAML" link to initiate the SAML authentication process with SAMLTest.com.
+
+Step 7: Configure SAMLTest.com as IdP
+
+Visit SAMLTest.com: Go to https://samltest.com/.
+
+Create a Test IdP:
+   Click on "Test IdP" to create a new test Identity Provider.
+   Follow the instructions to set up your SP metadata. You will need to enter your AssertionConsumerService URL from the saml2ServiceProviderRegistration.
+
+Test Your Application: Once configured, you can test SAML authentication.
+
+Conclusion
+
+This guide provides a complete setup for a Spring Boot application using Spring Security SAML2 with the spring-security-saml2-service-provider version 6.4.3. Make sure to thoroughly test the integration and adjust your application's security settings as necessary for your requirements.
