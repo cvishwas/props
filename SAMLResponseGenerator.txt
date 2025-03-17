@@ -1,0 +1,112 @@
+import org.opensaml.saml.saml2.core.*;
+import org.opensaml.security.credential.Credential;
+import org.opensaml.security.credential.BasicCredential;
+import org.opensaml.security.keyinfo.KeyInfoCredentialResolver;
+import org.opensaml.security.keyinfo.impl.KeyInfoCredentialResolverImpl;
+import org.opensaml.xmlsec.signature.support.SignatureConstants;
+import org.opensaml.xmlsec.signature.Signature;
+import org.opensaml.xmlsec.signature.support.SignatureSupport;
+
+import java.time.Instant;
+import java.util.Date;
+
+public class SAMLResponseGenerator {
+
+    public static void main(String[] args) {
+        try {
+            InitializationService.initialize();
+
+            // Create SAML Response
+            Response response = createSAMLResponse();
+
+            // Serialize the response to XML
+            String xmlResponse = MarshallingUtils.marshallAndSerialize(response);
+            System.out.println(xmlResponse);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static Response createSAMLResponse() {
+        // Create the SAML Response
+        Response response = SAMLBuilder.buildResponse();
+
+        // Set the ID, IssueInstant and Version
+        response.setID("response-" + System.currentTimeMillis());
+        response.setIssueInstant(Instant.now());
+        response.setVersion(SAMLVersion.VERSION_20);
+
+        // Create Issuer
+        Issuer issuer = SAMLBuilder.buildIssuer();
+        issuer.setValue("https://your-issuer-url.com");
+        response.setIssuer(issuer);
+
+        // Create Assertion
+        Assertion assertion = createAssertion();
+        response.getAssertions().add(assertion);
+
+        // Sign the response
+        signResponse(response);
+
+        return response;
+    }
+
+    private static Assertion createAssertion() {
+        Assertion assertion = SAMLBuilder.buildAssertion();
+
+        // Set the ID, IssueInstant, and Version
+        assertion.setID("assertion-" + System.currentTimeMillis());
+        assertion.setIssueInstant(Instant.now());
+        assertion.setVersion(SAMLVersion.VERSION_20);
+
+        // Create Issuer for assertion
+        Issuer issuer = SAMLBuilder.buildIssuer();
+        issuer.setValue("https://your-issuer-url.com");
+        assertion.setIssuer(issuer);
+
+        // Add Subject
+        Subject subject = createSubject();
+        assertion.setSubject(subject);
+
+        // Add Conditions
+        Conditions conditions = createConditions();
+        assertion.setConditions(conditions);
+
+        // Add other assertion details (Attributes, etc.)
+
+        return assertion;
+    }
+
+    // Create Subject
+    private static Subject createSubject() {
+        Subject subject = SAMLBuilder.buildSubject();
+        // Set Subject Name ID
+        NameID nameID = SAMLBuilder.buildNameID();
+        nameID.setValue("user@example.com");
+        subject.setNameID(nameID);
+        return subject;
+    }
+
+    // Create Conditions
+    private static Conditions createConditions() {
+        Conditions conditions = SAMLBuilder.buildConditions();
+        // Set NotBefore and NotOnOrAfter
+        conditions.setNotBefore(Date.from(Instant.now()));
+        conditions.setNotOnOrAfter(Date.from(Instant.now().plusSeconds(3600))); // 1 hour validity
+        return conditions;
+    }
+
+    // Sign the response
+    private static void signResponse(Response response) {
+        // Create a signing credential (you would normally load this from a keystore)
+        Credential signingCredential = new BasicCredential();
+        // Set your private key and certificate here
+        // signingCredential.setPrivateKey(...);
+        // signingCredential.setPublicKey(...);
+
+        Signature signature = SignatureSupport.createSignature(signingCredential, SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA256);
+        response.setSignature(signature);
+        SignatureSupport.signObject(response);
+    }
+}
