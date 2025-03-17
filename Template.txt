@@ -1,0 +1,9 @@
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>SAML Demo</title>
+</head>
+<body>
+    <h1>Welcome to the SAML Demo</h1>
+    <a th:href="@{/saml/login}">Login with SAML</a>
+</body>
+</html>
