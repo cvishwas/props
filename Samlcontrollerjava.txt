@@ -1,0 +1,58 @@
+import org.opensaml.saml.saml2.core.Response;
+import org.opensaml.xmlsec.signature.Signature;
+import org.springframework.web.bind.annotation.*;
+import org.w3c.dom.Document;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+
+@RestController
+@RequestMapping("/saml")
+public class SamlController {
+
+    static {
+        try {
+            InitializationService.initialize();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @PostMapping("/consume")
+    public String consumeSamlResponse(@RequestParam("SAMLResponse") String samlResponse) {
+        try {
+            // Decode the SAML response
+            byte[] decodedBytes = Base64.getDecoder().decode(samlResponse);
+            String decodedString = new String(decodedBytes, StandardCharsets.UTF_8);
+
+            // Parse the SAML response
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setNamespaceAware(true);
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            Document document = builder.parse(new ByteArrayInputStream(decodedString.getBytes(StandardCharsets.UTF_8)));
+
+            // Build the SAML Response object
+            Response response = (Response) XMLObjectProviderRegistrySupport.getBuilderFactory()
+                    .getBuilder(Response.DEFAULT_ELEMENT_NAME)
+                    .buildObject(document.getDocumentElement());
+
+            // Validate the response signature (implement your validation logic)
+            if (validateSignature(response.getSignature())) {
+                return "SAML Response processed successfully.";
+            } else {
+                return "Invalid SAML Signature.";
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Error processing SAML Response: " + e.getMessage();
+        }
+    }
+
+    private boolean validateSignature(Signature signature) {
+        // Implement signature validation logic here
+        return true; // Replace with actual validation
+    }
+}
