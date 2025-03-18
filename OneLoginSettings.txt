@@ -1,0 +1,24 @@
+"strict": true,
+    "debug": true,
+    "sp": {
+        "entityId": "http://localhost:8080/saml/metadata",
+        "assertionConsumerService": {
+            "url": "http://localhost:8080/saml/consume"
+        },
+        "singleLogoutService": {
+            "url": "http://localhost:8080/saml/logout"
+        },
+        "x509cert": "",
+        "privateKey": ""
+    },
+    "idp": {
+        "entityId": "https://idp.onelogin.com/metadata/123456",
+        "singleSignOnService": {
+            "url": "https://idp.onelogin.com/oidc/123456"
+        },
+        "singleLogoutService": {
+            "url": "https://idp.onelogin.com/oidc/123456/logout"
+        },
+        "x509cert": "YOUR_IDP_X509_CERTIFICATE"
+    }
+}
