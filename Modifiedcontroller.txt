@@ -1,0 +1,36 @@
+import org.springframework.web.bind.annotation.*;
+import org.springframework.security.saml.SAMLResponse;
+import org.springframework.security.saml.SAMLProcessingException;
+import org.springframework.security.saml.SAMLEndpoint;
+import org.springframework.security.saml.metadata.MetadataGeneratorFilter;
+import org.springframework.security.saml.websso.WebSSOProfileConsumer;
+import org.springframework.security.saml.websso.WebSSOProfileConsumerImpl;
+
+@RestController
+@RequestMapping("/saml")
+public class SamlController {
+
+    private final WebSSOProfileConsumer webSSOProfileConsumer;
+
+    public SamlController() {
+        this.webSSOProfileConsumer = new WebSSOProfileConsumerImpl();
+    }
+
+    @PostMapping("/consume")
+    public String consumeSamlResponse(@RequestParam("SAMLResponse") String samlResponse) {
+        try {
+            SAMLResponse response = new SAMLResponse(samlResponse);
+
+            // Process the SAML response
+            if (response.isSuccess()) {
+                // Handle successful response
+                return "SAML Response processed successfully.";
+            } else {
+                return "SAML Response indicates failure.";
+            }
+        } catch (SAMLProcessingException e) {
+            e.printStackTrace();
+            return "Error processing SAML Response: " + e.getMessage();
+        }
+    }
+}
