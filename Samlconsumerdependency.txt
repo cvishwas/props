@@ -1,0 +1,23 @@
+<groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-web</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.opensaml</groupId>
+    <artifactId>opensaml-saml-impl</artifactId>
+    <version>4.1.0</version>
+</dependency>
+<dependency>
+    <groupId>org.opensaml</groupId>
+    <artifactId>opensaml-saml-xmlsec</artifactId>
+    <version>4.1.0</version>
+</dependency>
+<dependency>
+    <groupId>org.opensaml</groupId>
+    <artifactId>opensaml-security-saml</artifactId>
+    <version>4.1.0</version>
+</dependency>
+<dependency>
+    <groupId>org.opensaml</groupId>
+    <artifactId>opensaml-security-impl</artifactId>
+    <version>4.1.0</version>
+</dependency>
