@@ -1,0 +1,65 @@
+import org.onelogin.saml2.auth.Auth;
+import org.onelogin.saml2.core.Response;
+import org.onelogin.saml2.settings.SettingsBuilder;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+
+@RestController
+@RequestMapping("/saml")
+public class SamlController {
+
+    private Auth auth;
+
+    public SamlController() {
+        // Initialize the OneLogin SAML Auth object with settings
+        auth = new Auth(new SettingsBuilder().fromFile("src/main/resources/settings.json").build());
+    }
+
+    @GetMapping("/simulate")
+    public String simulateSamlResponse() {
+        String samlResponse = readSamlResponseFromFile("samlResponse.txt");
+
+        if (samlResponse == null) {
+            return "Error: SAML response could not be read.";
+        }
+
+        // Decode the SAML response
+        String decodedResponse = new String(Base64.getDecoder().decode(samlResponse), StandardCharsets.UTF_8);
+
+        try {
+            // Process the SAML response
+            auth.processResponse(decodedResponse);
+            if (auth.isAuthenticated()) {
+                return "SAML Response processed successfully. User: " + auth.getNameId();
+            } else {
+                return "Failed to authenticate.";
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Error processing SAML Response: " + e.getMessage();
+        }
+    }
+
+    private String readSamlResponseFromFile(String fileName) {
+        StringBuilder samlResponse = new StringBuilder();
+        try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream(fileName);
+             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                samlResponse.append(line);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+        return samlResponse.toString();
+    }
+}
