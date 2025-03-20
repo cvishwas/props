@@ -1,0 +1,19 @@
+import com.example.entitlementservice.model.Entitlement;
+import com.example.entitlementservice.repository.EntitlementRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Optional;
+
+@RestController
+@RequestMapping("/api/users")
+public class UserController {
+
+    @Autowired
+    private EntitlementRepository entitlementRepository;
+
+    @GetMapping("/{userId}/entitlements")
+    public Optional<Entitlement> getEntitlements(@PathVariable String userId) {
+        return entitlementRepository.findById(userId);
+    }
+}
