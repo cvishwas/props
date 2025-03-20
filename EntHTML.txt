@@ -1,0 +1,33 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Entitlement Service</title>
+    <script>
+        function getEntitlements() {
+            const userId = document.getElementById("userId").value;
+            const resultDiv = document.getElementById("result");
+
+            fetch(`/api/users/${userId}/entitlements`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('User not found');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    resultDiv.innerHTML = `<p>User ID: ${data.userId}</p><p>Entitlement: ${data.entitlement}</p>`;
+                })
+                .catch(error => {
+                    resultDiv.innerHTML = `<p style="color:red;">${error.message}</p>`;
+                });
+        }
+    </script>
+</head>
+<body>
+    <h1>User Entitlement Service</h1>
+    <input type="text" id="userId" placeholder="Enter User ID" required>
+    <button onclick="getEntitlements()">Get Entitlements</button>
+    <div id="result"></div>
+</body>
+</html>
