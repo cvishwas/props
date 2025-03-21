@@ -1,0 +1,17 @@
+import com.example.entitlementservice.model.Entitlement;
+import com.example.entitlementservice.repository.EntitlementRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class EntitlementService {
+
+    @Autowired
+    private EntitlementRepository entitlementRepository;
+
+    public List<Entitlement> getAllEntitlements() {
+        return entitlementRepository.findAll();
+    }
+}
