@@ -1,0 +1,42 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Entitlement Service</title>
+    <script>
+        function getEntitlements() {
+            const userId = document.getElementById("userId").value;
+            const resultDiv = document.getElementById("result");
+
+            fetch(`/api/users/${userId}/details`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('User not found');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    resultDiv.innerHTML = `<h3>User ID: ${data.userId}</h3>`;
+                    data.groups.forEach(group => {
+                        resultDiv.innerHTML += `<h4>Group: ${group.groupName} (${group.groupType})</h4>`;
+                        resultDiv.innerHTML += `<p>Description: ${group.groupDescription}</p>`;
+                        resultDiv.innerHTML += `<h5>Entitlements:</h5><ul>`;
+                        group.entitlements.forEach(entitlement => {
+                            resultDiv.innerHTML += `<li>${entitlement.entitlement} (Role: ${entitlement.role}, Description: ${entitlement.description}, Application: ${entitlement.applicationName})</li>`;
+                        });
+                        resultDiv.innerHTML += `</ul>`;
+                    });
+                })
+                .catch(error => {
+                    resultDiv.innerHTML = `<p style="color:red;">${error.message}</p>`;
+                });
+        }
+    </script>
+</head>
+<body>
+    <h1>User Entitlement Service</h1>
+    <input type="text" id="userId" placeholder="Enter User ID" required>
+    <button onclick="getEntitlements()">Get User Details</button>
+    <div id="result"></div>
+</body>
+</html>
