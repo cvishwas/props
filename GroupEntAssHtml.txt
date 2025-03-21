@@ -1,0 +1,57 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Group Entitlement Association</title>
+    <script>
+        let entitlements = [];
+
+        function loadEntitlements() {
+            fetch('/api/entitlements')
+                .then(response => response.json())
+                .then(data => {
+                    entitlements = data;
+                    const entitlementSelect = document.getElementById('entitlements');
+                    entitlements.forEach(entitlement => {
+                        const option = document.createElement('option');
+                        option.value = entitlement.id;
+                        option.textContent = entitlement.entitlement;
+                        entitlementSelect.appendChild(option);
+                    });
+                });
+        }
+
+        function saveAssociations() {
+            const groupName = document.getElementById('groupName').value;
+            const selectedEntitlements = Array.from(document.getElementById('entitlements').selectedOptions).map(option => option.value);
+
+            fetch('/api/group-entitlement-association', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(selectedEntitlements)
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert('Associations saved successfully!');
+                } else {
+                    alert('Error saving associations.');
+                }
+            });
+        }
+    </script>
+</head>
+<body onload="loadEntitlements()">
+    <h1>Group Entitlement Association</h1>
+    <label for="groupName">Group Name:</label>
+    <input type="text" id="groupName" required>
+    
+    <label for="entitlements">Select Entitlements:</label>
+    <select id="entitlements" multiple>
+        <!-- Options will be loaded here -->
+    </select>
+
+    <button onclick="saveAssociations()">Save Associations</button>
+</body>
+</html>
