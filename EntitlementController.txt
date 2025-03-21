@@ -1,0 +1,21 @@
+import com.example.entitlementservice.model.Entitlement;
+import com.example.entitlementservice.service.EntitlementService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/entitlements")
+public class EntitlementController {
+
+    @Autowired
+    private EntitlementService entitlementService;
+
+    @GetMapping
+    public List<Entitlement> getAllEntitlements() {
+        return entitlementService.getAllEntitlements();
+    }
+}
