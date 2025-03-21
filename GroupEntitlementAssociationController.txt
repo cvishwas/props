@@ -1,0 +1,18 @@
+import com.example.entitlementservice.service.GroupEntitlementService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/group-entitlement-association")
+public class GroupEntitlementAssociationController {
+
+    @Autowired
+    private GroupEntitlementService groupEntitlementService;
+
+    @PostMapping
+    public void saveGroupEntitlements(@RequestParam String groupName, @RequestBody List<Long> entitlementIds) {
+        groupEntitlementService.saveGroupEntitlements(groupName, entitlementIds);
+    }
+}
