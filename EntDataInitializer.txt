@@ -1,0 +1,70 @@
+import com.example.entitlementservice.model.Entitlement;
+import com.example.entitlementservice.model.UserEntitlement;
+import com.example.entitlementservice.model.Group;
+import com.example.entitlementservice.model.Application;
+import com.example.entitlementservice.model.GroupEntitlement;
+import com.example.entitlementservice.model.UserGroup;
+import com.example.entitlementservice.repository.EntitlementRepository;
+import com.example.entitlementservice.repository.UserEntitlementRepository;
+import com.example.entitlementservice.repository.GroupRepository;
+import com.example.entitlementservice.repository.ApplicationRepository;
+import com.example.entitlementservice.repository.GroupEntitlementRepository;
+import com.example.entitlementservice.repository.UserGroupRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class DataInitializer {
+
+    @Autowired
+    private EntitlementRepository entitlementRepository;
+
+    @Autowired
+    private UserEntitlementRepository userEntitlementRepository;
+
+    @Autowired
+    private GroupRepository groupRepository;
+
+    @Autowired
+    private ApplicationRepository applicationRepository;
+
+    @Autowired
+    private GroupEntitlementRepository groupEntitlementRepository;
+
+    @Autowired
+    private UserGroupRepository userGroupRepository;
+
+    @Bean
+    public CommandLineRunner loadData() {
+        return args -> {
+            Application appA = new Application("Application A");
+            Application appB = new Application("Application B");
+            applicationRepository.save(appA);
+            applicationRepository.save(appB);
+
+            // Now create Entitlement instances with the new fields
+            Entitlement readEntitlement = new Entitlement("READ_PRIVILEGES", "Reader", "Allows read access", appA);
+            Entitlement writeEntitlement = new Entitlement("WRITE_PRIVILEGES", "Writer", "Allows write access", appB);
+            entitlementRepository.save(readEntitlement);
+            entitlementRepository.save(writeEntitlement);
+
+            UserEntitlement userEntitlement1 = new UserEntitlement("user1", "ADMIN_PRIVILEGES");
+            UserEntitlement userEntitlement2 = new UserEntitlement("user2", "USER_PRIVILEGES");
+            userEntitlementRepository.save(userEntitlement1);
+            userEntitlementRepository.save(userEntitlement2);
+
+            Group adminGroup = new Group("Admin Group", "Admin", "Group for administrative users");
+            Group userGroup = new Group("User Group", "User", "Group for regular users");
+            groupRepository.save(adminGroup);
+            groupRepository.save(userGroup);
+
+            groupEntitlementRepository.save(new GroupEntitlement(adminGroup, readEntitlement));
+            groupEntitlementRepository.save(new GroupEntitlement(userGroup, writeEntitlement));
+
+            userGroupRepository.save(new UserGroup("user1", adminGroup));
+            userGroupRepository.save(new UserGroup("user2", userGroup));
+        };
+    }
+}
