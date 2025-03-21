@@ -1,0 +1,22 @@
+const groupName = document.getElementById('groupName').value;
+    const selectedEntitlements = Array.from(document.getElementById('entitlements').selectedOptions).map(option => option.value);
+
+    fetch(`/api/group-entitlement-association?groupName=${encodeURIComponent(groupName)}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(selectedEntitlements)
+    })
+    .then(response => {
+        if (response.ok) {
+            alert('Associations saved successfully!');
+        } else {
+            alert('Error saving associations.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while saving associations.');
+    });
+}
