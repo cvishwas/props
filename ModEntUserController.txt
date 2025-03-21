@@ -1,0 +1,68 @@
+import com.example.entitlementservice.model.Entitlement;
+import com.example.entitlementservice.model.Group;
+import com.example.entitlementservice.model.UserGroup;
+import com.example.entitlementservice.repository.EntitlementRepository;
+import com.example.entitlementservice.repository.GroupRepository;
+import com.example.entitlementservice.repository.UserGroupRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+@Controller
+@RequestMapping("/api/users")
+public class UserController {
+
+    @Autowired
+    private UserGroupRepository userGroupRepository;
+
+    @Autowired
+    private EntitlementRepository entitlementRepository;
+
+    @Autowired
+    private GroupRepository groupRepository;
+
+    @GetMapping("/{userId}/details")
+    @ResponseBody
+    public Map<String, Object> getUserDetails(@PathVariable String userId) {
+        Map<String, Object> response = new HashMap<>();
+
+        // Retrieve user groups associated with the userId
+        List<UserGroup> userGroups = userGroupRepository.findAllByUserId(userId);
+        List<Map<String, Object>> groupsWithEntitlements = new ArrayList<>();
+
+        for (UserGroup userGroup : userGroups) {
+            Group group = userGroup.getGroup();
+            Map<String, Object> groupInfo = new HashMap<>();
+            groupInfo.put("groupId", group.getId());
+            groupInfo.put("groupName", group.getGroupName());
+            groupInfo.put("groupType", group.getGroupType());
+            groupInfo.put("groupDescription", group.getGroupDescription());
+
+            // Retrieve entitlements for the group
+            List<Entitlement> entitlements = entitlementRepository.findByApplication(group.getId());
+            List<Map<String, String>> entitlementDetails = new ArrayList<>();
+
+            for (Entitlement entitlement : entitlements) {
+                Map<String, String> entitlementInfo = new HashMap<>();
+                entitlementInfo.put("entitlement", entitlement.getEntitlement());
+                entitlementInfo.put("role", entitlement.getRole());
+                entitlementInfo.put("description", entitlement.getDescription());
+                entitlementInfo.put("applicationName", entitlement.getApplication().getApplicationName());
+                entitlementDetails.add(entitlementInfo);
+            }
+
+            groupInfo.put("entitlements", entitlementDetails);
+            groupsWithEntitlements.add(groupInfo);
+        }
+
+        response.put("userId", userId);
+        response.put("groups", groupsWithEntitlements);
+        return response;
+    }
+}
