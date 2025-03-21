@@ -1,0 +1,50 @@
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.ManyToOne;
+
+@Entity
+public class GroupEntitlement {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id; // Use Long for auto-generated IDs
+
+    @ManyToOne
+    private Group group; // Reference to the Group entity
+
+    @ManyToOne
+    private Entitlement entitlement; // Reference to the Entitlement entity
+
+    public GroupEntitlement() {}
+
+    public GroupEntitlement(Group group, Entitlement entitlement) {
+        this.group = group;
+        this.entitlement = entitlement;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Group getGroup() {
+        return group;
+    }
+
+    public void setGroup(Group group) {
+        this.group = group;
+    }
+
+    public Entitlement getEntitlement() {
+        return entitlement;
+    }
+
+    public void setEntitlement(Entitlement entitlement) {
+        this.entitlement = entitlement;
+    }
+}
