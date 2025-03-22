@@ -1,0 +1,18 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entitlement Admin</title>
+    <link rel="stylesheet" href="styles.css"> <!-- Link to the stylesheet -->
+</head>
+<body>
+    <div class="form-container">
+        <h1>Entitlement Admin</h1>
+        <h2>Select an Action</h2>
+        
+        <button onclick="location.href='create-group.html'">Create Group</button>
+        <button onclick="location.href='group-entitlement-association.html'">Associate Entitlements to Group</button>
+        <button onclick="location.href='user-group-association.html'">Associate User To Groups</button>
+    </div>
+</body>
+</html>
