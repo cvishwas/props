@@ -1,0 +1,44 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create New Group</title>
+    <script>
+        function createGroup() {
+            const groupName = document.getElementById('groupName').value;
+            const groupDescription = document.getElementById('groupDescription').value;
+
+            fetch('/api/groups?groupName=' + encodeURIComponent(groupName) + '&groupDescription=' + encodeURIComponent(groupDescription), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert('Group created successfully!');
+                    document.getElementById('groupName').value = '';
+                    document.getElementById('groupDescription').value = '';
+                } else {
+                    alert('Error: Group name already exists.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while creating the group.');
+            });
+        }
+    </script>
+</head>
+<body>
+    <h1>Create New Group</h1>
+    
+    <label for="groupName">Group Name:</label>
+    <input type="text" id="groupName" required>
+
+    <label for="groupDescription">Group Description:</label>
+    <input type="text" id="groupDescription" required>
+
+    <button onclick="createGroup()">Create Group</button>
+</body>
+</html>
