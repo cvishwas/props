@@ -1,0 +1,18 @@
+import com.example.entitlementservice.service.UserGroupAssociationService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/user-group-association")
+public class UserGroupAssociationController {
+
+    @Autowired
+    private UserGroupAssociationService userGroupAssociationService;
+
+    @PostMapping
+    public void associateUserWithGroups(@RequestParam String userId, @RequestBody List<Long> groupIds) {
+        userGroupAssociationService.associateUserWithGroups(userId, groupIds);
+    }
+}
