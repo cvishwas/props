@@ -1,0 +1,98 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Group Association</title>
+    <script>
+        let groups = [];
+
+        function loadGroups() {
+            fetch('/api/groups')
+                .then(response => response.json())
+                .then(data => {
+                    groups = data;
+                    const groupSelect = document.getElementById('groups');
+                    groupSelect.innerHTML = ''; // Clear existing options
+                    groups.forEach(group => {
+                        const option = document.createElement('option');
+                        option.value = group.id;
+                        option.textContent = group.groupName;
+                        groupSelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading groups:', error);
+                });
+        }
+
+        function retrieveAssociatedEntitlements() {
+            const groupId = document.getElementById('groups').value;
+
+            fetch(`/api/group-entitlement-association?groupId=${groupId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const associatedEntitlementsDiv = document.getElementById('associatedEntitlements');
+                    associatedEntitlementsDiv.innerHTML = `<h3>Associated Entitlements for Group ID: ${groupId}</h3>`;
+                    const ul = document.createElement('ul');
+                    data.forEach(entitlement => {
+                        const li = document.createElement('li');
+                        li.textContent = `${entitlement.entitlement} (Role: ${entitlement.role}, Description: ${entitlement.description})`;
+                        ul.appendChild(li);
+                    });
+                    associatedEntitlementsDiv.appendChild(ul);
+                })
+                .catch(error => {
+                    console.error('Error retrieving associated entitlements:', error);
+                });
+        }
+
+        function saveAssociations() {
+            const userId = document.getElementById('userId').value;
+            const selectedGroups = Array.from(document.getElementById('groups').selectedOptions).map(option => option.value);
+
+            fetch('/api/user-group-association?userId=' + encodeURIComponent(userId), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(selectedGroups)
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert('Associations saved successfully!');
+                } else {
+                    alert('Error saving associations.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while saving associations.');
+            });
+        }
+    </script>
+</head>
+<body onload="loadGroups()">
+    <h1>User Group Association</h1>
+    
+    <label for="userId">User ID:</label>
+    <input type="text" id="userId" required>
+
+    <label for="groups">Select Group:</label>
+    <select id="groups" onchange="retrieveAssociatedEntitlements()">
+        <!-- Options will be loaded here -->
+    </select>
+
+    <button onclick="retrieveAssociatedEntitlements()">Retrieve Associated Entitlements</button>
+
+    <div id="associatedEntitlements">
+        <!-- Associated entitlements will be displayed here -->
+    </div>
+
+    <label for="entitlements">Select Entitlements:</label>
+    <select id="entitlements" multiple>
+        <!-- Options will be loaded here -->
+    </select>
+
+    <button onclick="saveAssociations()">Save Associations</button>
+</body>
+</html>
