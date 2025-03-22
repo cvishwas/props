@@ -1,0 +1,24 @@
+import com.example.entitlementservice.model.UserGroup;
+import com.example.entitlementservice.repository.UserGroupRepository;
+import com.example.entitlementservice.repository.GroupRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class UserGroupAssociationService {
+
+    @Autowired
+    private UserGroupRepository userGroupRepository;
+
+    @Autowired
+    private GroupRepository groupRepository;
+
+    public void associateUserWithGroups(String userId, List<Long> groupIds) {
+        for (Long groupId : groupIds) {
+            UserGroup userGroup = new UserGroup(userId, groupRepository.findById(groupId).orElse(null));
+            userGroupRepository.save(userGroup);
+        }
+    }
+}
