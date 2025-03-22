@@ -1,0 +1,24 @@
+import com.example.entitlementservice.model.Group;
+import com.example.entitlementservice.service.GroupService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/groups")
+public class GroupCreationController {
+
+    @Autowired
+    private GroupService groupService;
+
+    @PostMapping
+    public ResponseEntity<Group> createGroup(@RequestParam String groupName, @RequestParam String groupDescription) {
+        try {
+            Group newGroup = groupService.createGroup(groupName, groupDescription);
+            return new ResponseEntity<>(newGroup, HttpStatus.CREATED);
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+        }
+    }
+}
