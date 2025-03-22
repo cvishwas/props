@@ -1,0 +1,25 @@
+import com.example.entitlementservice.model.Group;
+import com.example.entitlementservice.repository.GroupRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.Optional;
+
+@Service
+public class GroupService {
+
+    @Autowired
+    private GroupRepository groupRepository;
+
+    public Group createGroup(String groupName, String groupDescription) {
+        // Check if group name already exists
+        Optional<Group> existingGroup = groupRepository.findByGroupName(groupName);
+        if (existingGroup.isPresent()) {
+            throw new IllegalArgumentException("Group name already exists");
+        }
+        
+        // Create and save the new group
+        Group newGroup = new Group(groupName, "Custom Group", groupDescription);
+        return groupRepository.save(newGroup);
+    }
+}
