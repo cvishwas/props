@@ -1,0 +1,40 @@
+import com.example.entitlementservice.model.GroupEntitlement;
+import com.example.entitlementservice.repository.GroupEntitlementRepository;
+import com.example.entitlementservice.repository.GroupRepository;
+import com.example.entitlementservice.repository.EntitlementRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class GroupEntitlementService {
+
+    @Autowired
+    private GroupRepository groupRepository;
+
+    @Autowired
+    private EntitlementRepository entitlementRepository;
+
+    @Autowired
+    private GroupEntitlementRepository groupEntitlementRepository;
+
+    public void associateGroupWithEntitlements(Long groupId, List<Long> entitlementIds) {
+        // Check if the group exists
+        if (!groupRepository.existsById(groupId)) {
+            throw new IllegalArgumentException("Group does not exist");
+        }
+
+        // Associate each entitlement with the group
+        for (Long entitlementId : entitlementIds) {
+            if (!entitlementRepository.existsById(entitlementId)) {
+                throw new IllegalArgumentException("Entitlement with ID " + entitlementId + " does not exist");
+            }
+            
+            GroupEntitlement groupEntitlement = new GroupEntitlement();
+            groupEntitlement.setGroupId(groupId);
+            groupEntitlement.setEntitlementId(entitlementId);
+            groupEntitlementRepository.save(groupEntitlement);
+        }
+    }
+}
