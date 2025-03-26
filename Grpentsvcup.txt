@@ -1,0 +1,29 @@
+import com.example.entitlementservice.model.GroupEntitlement;
+import com.example.entitlementservice.repository.GroupEntitlementRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class GroupEntitlementService {
+
+    @Autowired
+    private GroupEntitlementRepository groupEntitlementRepository;
+
+    // Existing methods...
+
+    public void removeGroupEntitlement(Long groupId, Long entitlementId) {
+        // Find the existing association
+        GroupEntitlement association = groupEntitlementRepository.findAllByGroupId(groupId).stream()
+                .filter(groupEntitlement -> groupEntitlement.getEntitlementId().equals(entitlementId))
+                .findFirst()
+                .orElse(null);
+
+        if (association != null) {
+            groupEntitlementRepository.delete(association);
+        } else {
+            throw new IllegalArgumentException("No such association exists");
+        }
+    }
+}
