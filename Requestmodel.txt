@@ -1,0 +1,23 @@
+import java.util.List;
+
+public class GroupEntitlementRequest {
+    private Long groupId;
+    private List<Long> entitlementIds;
+
+    // Getters and Setters
+    public Long getGroupId() {
+        return groupId;
+    }
+
+    public void setGroupId(Long groupId) {
+        this.groupId = groupId;
+    }
+
+    public List<Long> getEntitlementIds() {
+        return entitlementIds;
+    }
+
+    public void setEntitlementIds(List<Long> entitlementIds) {
+        this.entitlementIds = entitlementIds;
+    }
+}
