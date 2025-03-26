@@ -1,0 +1,219 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Group Entitlement Association</title>
+    <link rel="stylesheet" href="styles.css"> <!-- Link to the stylesheet -->
+    <script>
+        let groups = [];
+        let applications = [];
+        let entitlements = [];
+        let selectedEntitlements = []; // To hold already associated entitlements
+
+        function loadGroups() {
+            fetch('/api/groups')
+                .then(response => response.json())
+                .then(data => {
+                    groups = data;
+                    const groupSelect = document.getElementById('groups');
+                    groupSelect.innerHTML = ''; // Clear existing options
+                    groups.forEach(group => {
+                        const option = document.createElement('option');
+                        option.value = group.id;
+                        option.textContent = group.groupName;
+                        groupSelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading groups:', error);
+                });
+        }
+
+        function loadApplications() {
+            fetch('/api/applications')
+                .then(response => response.json())
+                .then(data => {
+                    applications = data;
+                    const appSelect = document.getElementById('applications');
+                    appSelect.innerHTML = '<option value="">Select Application</option>'; // Default option
+                    applications.forEach(app => {
+                        const option = document.createElement('option');
+                        option.value = app.id;
+                        option.textContent = app.applicationName;
+                        appSelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading applications:', error);
+                });
+        }
+
+        function loadEntitlements() {
+            const applicationId = document.getElementById('applications').value;
+
+            if (!applicationId) {
+                return; // Do nothing if no application is selected
+            }
+
+            const application = {
+                id: applicationId
+            };
+
+            fetch('/api/entitlements/by-application', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(application)
+            })
+            .then(response => response.json())
+            .then(data => {
+                entitlements = data;
+                const entitlementSelect = document.getElementById('availableEntitlements');
+                const selectedEntitlementSelect = document.getElementById('selectedEntitlements');
+
+                // Clear existing options
+                entitlementSelect.innerHTML = '';
+                selectedEntitlementSelect.innerHTML = '';
+
+                // Populate available entitlements
+                entitlements.forEach(entitlement => {
+                    const option = document.createElement('option');
+                    option.value = entitlement.id;
+                    option.textContent = entitlement.entitlement;
+                    entitlementSelect.appendChild(option);
+                });
+
+                // Load selected entitlements for the selected group
+                const groupId = document.getElementById('groups').value;
+                if (groupId) {
+                    fetch(`/api/group-entitlement-association/selected-entitlements?groupId=${groupId}`)
+                        .then(response => response.json())
+                        .then(selectedData => {
+                            selectedEntitlements = selectedData.map(entitlement => entitlement.id);
+                            selectedEntitlements.forEach(entitlementId => {
+                                const entitlement = entitlements.find(ent => ent.id === entitlementId);
+                                if (entitlement) {
+                                    const option = document.createElement('option');
+                                    option.value = entitlement.id;
+                                    option.textContent = entitlement.entitlement;
+                                    selectedEntitlementSelect.appendChild(option);
+                                }
+                            });
+                        })
+                        .catch(error => {
+                            console.error('Error loading selected entitlements:', error);
+                        });
+                }
+            })
+            .catch(error => {
+                console.error('Error loading entitlements:', error);
+            });
+        }
+
+        function moveEntitlementToSelected() {
+            const entitlementSelect = document.getElementById('availableEntitlements');
+            const selectedEntitlementSelect = document.getElementById('selectedEntitlements');
+
+            Array.from(entitlementSelect.selectedOptions).forEach(option => {
+                selectedEntitlementSelect.appendChild(option.cloneNode(true));
+            });
+        }
+
+        function moveEntitlementToAvailable() {
+            const selectedEntitlementSelect = document.getElementById('selectedEntitlements');
+
+            Array.from(selectedEntitlementSelect.selectedOptions).forEach(option => {
+                option.remove();
+            });
+        }
+
+        function removeSelectedEntitlement() {
+            const selectedEntitlementSelect = document.getElementById('selectedEntitlements');
+
+            Array.from(selectedEntitlementSelect.selectedOptions).forEach(option => {
+                const entitlementId = option.value;
+                const groupId = document.getElementById('groups').value;
+
+                fetch(`/api/group-entitlement-association?groupId=${groupId}&entitlementId=${entitlementId}`, {
+                    method: 'DELETE'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        option.remove(); // Remove from the UI
+                        alert('Entitlement removed successfully!');
+                    } else {
+                        alert('Error removing entitlement.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while removing entitlement.');
+                });
+            });
+        }
+
+        function saveAssociations() {
+            const selectedGroupId = document.getElementById('groups').value;
+            const selectedEntitlementIds = Array.from(document.getElementById('selectedEntitlements').options).map(option => option.value);
+
+            const requestBody = {
+                groupId: selectedGroupId,
+                entitlementIds: selectedEntitlementIds
+            };
+
+            fetch('/api/group-entitlement-association', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody) // Send the request body as JSON
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert('Associations saved successfully!');
+                } else {
+                    alert('Error saving associations.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while saving associations.');
+            });
+        }
+
+        window.onload = function() {
+            loadGroups();
+            loadApplications();
+        }
+    </script>
+</head>
+<body>
+    <div class="form-container">
+        <h1>Group Entitlement Association</h1>
+
+        <label for="groups">Select Group:</label>
+        <select id="groups" onchange="loadEntitlements()">
+            <!-- Options will be loaded here -->
+        </select>
+
+        <label for="applications">Select Application:</label>
+        <select id="applications" onchange="loadEntitlements()">
+            <option value="">Select Application</option> <!-- Default blank selection -->
+            <!-- Options will be loaded here -->
+        </select>
+
+        <div class="entitlement-selection">
+            <label for="availableEntitlements">Available Entitlements:</label>
+            <select id="availableEntitlements" multiple size="5"></select>
+            <button onclick="moveEntitlementToSelected()">Add &gt;&gt;</button>
+            <button onclick="moveEntitlementToAvailable()">&lt;&lt; Remove</button>
+            <label for="selectedEntitlements">Selected Entitlements:</label>
+            <select id="selectedEntitlements" multiple size="5"></select>
+            <button onclick="removeSelectedEntitlement()">Remove Selected</button>
+        </div>
+
+        <button onclick="saveAssociations()">Save Associations</button>
+    </div>
+</body>
+</html>
