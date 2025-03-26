@@ -1,0 +1,30 @@
+const applicationId = document.getElementById('applications').value;
+
+    // Create an Application object
+    const application = {
+        id: applicationId
+    };
+
+    fetch('/api/entitlements/by-application', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(application) // Pass the Application object as JSON
+    })
+    .then(response => response.json())
+    .then(data => {
+        entitlements = data;
+        const entitlementSelect = document.getElementById('entitlements');
+        entitlementSelect.innerHTML = ''; // Clear existing options
+        entitlements.forEach(entitlement => {
+            const option = document.createElement('option');
+            option.value = entitlement.id;
+            option.textContent = entitlement.entitlement;
+            entitlementSelect.appendChild(option);
+        });
+    })
+    .catch(error => {
+        console.error('Error loading entitlements:', error);
+    });
+}
