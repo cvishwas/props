@@ -1,0 +1,24 @@
+import com.example.entitlementservice.service.GroupEntitlementService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/group-entitlement-association")
+public class GroupEntitlementAssociationController {
+
+    @Autowired
+    private GroupEntitlementService groupEntitlementService;
+
+    // Existing methods...
+
+    @DeleteMapping
+    public ResponseEntity<Void> removeGroupEntitlement(@RequestParam Long groupId, @RequestParam Long entitlementId) {
+        try {
+            groupEntitlementService.removeGroupEntitlement(groupId, entitlementId);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+}
