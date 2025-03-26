@@ -1,0 +1,35 @@
+import com.example.entitlementservice.model.GroupEntitlementRequest;
+import com.example.entitlementservice.service.GroupEntitlementService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/group-entitlement-association")
+public class GroupEntitlementAssociationController {
+
+ @Autowired
+ private GroupEntitlementService groupEntitlementService;
+
+ @PostMapping
+ public ResponseEntity<Void> associateGroupWithEntitlements(@RequestBody GroupEntitlementRequest request) {
+ try {
+ groupEntitlementService.associateGroupWithEntitlements(request.getGroupId(), request.getEntitlementIds());
+ return ResponseEntity.ok().build();
+ } catch (IllegalArgumentException e) {
+ return ResponseEntity.badRequest().build();
+ }
+ }
+
+ @GetMapping
+ public ResponseEntity<List<Entitlement>> getAssociatedEntitlements(@RequestParam Long groupId) {
+ // This method can be implemented to retrieve associated entitlements for a given group
+ List<Entitlement> entitlements = groupEntitlementService.getEntitlementsByGroupId(groupId);
+ return ResponseEntity.ok(entitlements);
+ ementService.getEntitlementsByGroupId(groupId);
+ return ResponseEntity.ok(entitlements);
+ nts);
+ }
+}
