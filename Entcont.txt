@@ -1,0 +1,77 @@
+To create a method that retrieves all details of an Entitlement given its ID, you will need to implement this functionality in your EntitlementController and use the EntitlementRepository to fetch the data from the database.
+
+Step 1: Update the Entitlement Repository
+
+First, ensure that your EntitlementRepository has a method to find an entitlement by its ID.
+
+src/main/java/com/example/entitlementservice/repository/EntitlementRepository.java
+
+package com.example.entitlementservice.repository;
+
+import com.example.entitlementservice.model.Entitlement;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface EntitlementRepository extends JpaRepository {
+    // This method is inherited from JpaRepository
+    // Optional findById(Long id);
+}
+
+Step 2: Update the Entitlement Controller
+
+Now, create a new endpoint in the EntitlementController to retrieve an entitlement by its ID.
+
+src/main/java/com/example/entitlementservice/controller/EntitlementController.java
+
+package com.example.entitlementservice.controller;
+
+import com.example.entitlementservice.model.Entitlement;
+import com.example.entitlementservice.repository.EntitlementRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Optional;
+
+@RestController
+@RequestMapping("/api/entitlements")
+public class EntitlementController {
+
+    @Autowired
+    private EntitlementRepository entitlementRepository;
+
+    // Existing methods...
+
+    @GetMapping("/{id}")
+    public ResponseEntity getEntitlementById(@PathVariable Long id) {
+        Optional entitlement = entitlementRepository.findById(id);
+        if (entitlement.isPresent()) {
+            return ResponseEntity.ok(entitlement.get());
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+}
+
+Step 3: Test the Endpoint
+
+Start your Spring Boot application.
+Use Postman or any API testing tool to make a GET request to the endpoint:
+
+      GET http://localhost:8080/api/entitlements/{id}
+  
+
+   Replace {id} with the actual ID of the entitlement you want to retrieve.
+
+Check the Response:
+   If the entitlement exists, you will receive a 200 OK response with the entitlement details.
+   If it does not exist, you will receive a 404 Not Found response.
+
+Summary
+
+Repository: The EntitlementRepository already has methods to find entitlements by ID.
+Controller: The EntitlementController now has a new endpoint to fetch entitlement details by ID.
+Testing: You can test the functionality using an API client.
+
+If you have any further questions or need additional modifications, feel free to ask!
