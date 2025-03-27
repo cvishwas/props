@@ -1,0 +1,26 @@
+import com.example.usersession.model.UserSession;
+import com.example.usersession.repository.UserSessionRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+@Service
+public class UserSessionService {
+
+    @Autowired
+    private UserSessionRepository userSessionRepository;
+
+    public UserSession createSession(String userId) {
+        // Generate a unique session ID
+        String sessionId = UUID.randomUUID().toString();
+        LocalDateTime createdTime = LocalDateTime.now();
+        LocalDateTime expiryTime = createdTime.plusHours(1); // Set expiry time to 1 hour later
+
+        // Create a new session object
+        UserSession session = new UserSession(sessionId, createdTime, expiryTime, userId);
+        // Save the session to the database
+        return userSessionRepository.save(session);
+    }
+}
