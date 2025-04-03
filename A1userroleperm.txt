@@ -1,0 +1,86 @@
+import com.example.roles.entitlements.model.UserRolePermission;
+import com.example.roles.entitlements.model.EntitlementRolePermission;
+import com.example.roles.entitlements.repository.UserRolePermissionRepository;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+
+@Service
+public class UserRolePermissionService {
+    private final UserRolePermissionRepository userRolePermissionRepository;
+
+    public UserRolePermissionService(UserRolePermissionRepository userRolePermissionRepository) {
+        this.userRolePermissionRepository = userRolePermissionRepository;
+    }
+
+    public UserRolePermission associateUserWithRolePermission(String userId, Long entitlementRolePermissionId) {
+        UserRolePermission userRolePermission = new UserRolePermission();
+        userRolePermission.setUserId(userId);
+        
+        // Assuming EntitlementRolePermission is already fetched or you can fetch it
+        EntitlementRolePermission entitlementRolePermission = /* fetch from repository */;
+        userRolePermission.setEntitlementRolePermission(entitlementRolePermission);
+        
+        userRolePermission.setCreatedDate(LocalDateTime.now());
+        // Set other fields as necessary
+
+        return userRolePermissionRepository.save(userRolePermission);
+    }
+}
+
+import com.example.roles.entitlements.service.UserRolePermissionService;
+import com.example.roles.entitlements.service.EntitlementRolePermissionService; // To fetch role permissions
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import java.util.List;
+
+@Controller
+public class UserRolePermissionController {
+    private final UserRolePermissionService userRolePermissionService;
+    private final EntitlementRolePermissionService entitlementRolePermissionService; // Assume this service fetches role permissions
+
+    public UserRolePermissionController(UserRolePermissionService userRolePermissionService,
+                                         EntitlementRolePermissionService entitlementRolePermissionService) {
+        this.userRolePermissionService = userRolePermissionService;
+        this.entitlementRolePermissionService = entitlementRolePermissionService;
+    }
+
+    @GetMapping("/users/roles/associate")
+    public String showAssociateForm(Model model) {
+        model.addAttribute("users", /* fetch users */);
+        model.addAttribute("rolePermissions", entitlementRolePermissionService.getAllRolePermissions()); // Fetch role permissions
+        return "associate_user_role_permission"; // Thymeleaf template name
+    }
+
+    @PostMapping("/users/roles")
+    public String associateUserWithRolePermission(@RequestParam String userId, @RequestParam Long rolePermissionId) {
+        userRolePermissionService.associateUserWithRolePermission(userId, rolePermissionId);
+        return "redirect:/users/roles/associate"; // Redirect after submission
+    }
+}
+
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Associate User with Role Permission</title>
+</head>
+<body>
+<h1>Associate User with Role Permission</h1>
+<form action="#" th:action="@{/users/roles}" method="post">
+    <label for="user">Select User:</label>
+    <select id="user" name="userId" required>
+        <option th:each="user : ${users}" th:value="${user.id}" th:text="${user.name}"></option>
+    </select>
+
+    <label for="rolePermission">Select Role Permission:</label>
+    <select id="rolePermission" name="rolePermissionId" required>
+        <option th:each="rolePermission : ${rolePermissions}" th:value="${rolePermission.id}" th:text="${rolePermission.name}"></option>
+    </select>
+
+    <button type="submit">Associate</button>
+</form>
+</body>
+</html>
