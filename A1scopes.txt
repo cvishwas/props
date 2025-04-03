@@ -1,0 +1,74 @@
+import com.example.roles.entitlements.model.Scope;
+import com.example.roles.entitlements.repository.ScopeRepository;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class ScopeService {
+ private final ScopeRepository scopeRepository;
+
+ public ScopeService(ScopeRepository scopeRepository) {
+ this.scopeRepository = scopeRepository;
+ }
+
+ public List<Scope> getAllScopes() {
+ return scopeRepository.findAll();
+ }
+}
+
+import com.example.roles.entitlements.model.Scope;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ScopeRepository extends JpaRepository<Scope, Long> {}
+
+import com.example.roles.entitlements.model.Scope;
+import com.example.roles.entitlements.service.ScopeService;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+
+import java.util.List;
+
+@Controller
+public class ScopeController {
+    private final ScopeService scopeService;
+
+    public ScopeController(ScopeService scopeService) {
+        this.scopeService = scopeService;
+    }
+
+    @GetMapping("/scopes")
+    public String getAllScopes(Model model) {
+        List<Scope> scopes = scopeService.getAllScopes();
+        model.addAttribute("scopes", scopes);
+        return "scope_list"; // Thymeleaf template name
+    }
+}
+
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Scope List</title>
+</head>
+<body>
+<h1>List of Scopes</h1>
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Version</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr th:each="scope : ${scopes}">
+            <td th:text="${scope.id}"></td>
+            <td th:text="${scope.name}"></td>
+            <td th:text="${scope.description}"></td>
+            <td th:text="${scope.version}"></td>
+        </tr>
+    </tbody>
+</table>
+</body>
+</html>
