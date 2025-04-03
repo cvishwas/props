@@ -1,0 +1,279 @@
+import javax.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+public class Application {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String name;
+    private String type;
+    private Long version;
+    private String createdUserId;
+    private LocalDateTime createdDate;
+    private String updatedUserId;
+    private LocalDateTime updatedDate;
+
+    // Getters and Setters
+}
+
+import javax.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+public class ResourceType {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String name;
+    private String description;
+    private Long version;
+    private String createdUserId;
+    private LocalDateTime createdDate;
+    private String updatedUserId;
+    private LocalDateTime updatedDate;
+
+    @ManyToOne
+    private Application application;
+
+    // Getters and Setters
+}
+
+import javax.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+public class Resource {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String name;
+    private String description;
+    private Long version;
+
+    @ManyToOne
+    private ResourceType resourceType;
+
+    private String createdUserId;
+    private LocalDateTime createdDate;
+    private String updatedUserId;
+    private LocalDateTime updatedDate;
+
+    // Getters and Setters
+}
+
+import javax.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+public class Scope {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String name;
+    private String description;
+    private Long version;
+    private String createdUserId;
+    private LocalDateTime createdDate;
+    private String updatedUserId;
+    private LocalDateTime updatedDate;
+
+    // Getters and Setters
+}
+
+import javax.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+public class ResourceTypeScope {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne
+    private ResourceType resourceType;
+
+    @ManyToOne
+    private Scope scope;
+
+    private String createdUserId;
+    private LocalDateTime createdDate;
+    private String updatedUserId;
+    private LocalDateTime updatedDate;
+
+    // Getters and Setters
+}
+
+import javax.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+public class EntitlementRole {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String name;
+    private String description;
+    private Long version;
+    private String createdUserId;
+    private LocalDateTime createdDate;
+    private String updatedUserId;
+    private LocalDateTime updatedDate;
+
+    // Getters and Setters
+}
+
+import javax.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+public class ResourceScope {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne
+    private Scope scope;
+
+    @ManyToOne
+    private Resource resource;
+
+    private String createdUserId;
+    private LocalDateTime createdDate;
+    private String updatedUserId;
+    private LocalDateTime updatedDate;
+
+    // Getters and Setters
+}
+
+import javax.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+public class EntitlementRolePermission {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private Long version;
+
+    @ManyToOne
+    private EntitlementRole entitlementRole;
+
+    @ManyToOne
+    private ResourceScope resourceScope;
+
+    private String createdUserId;
+    private LocalDateTime createdDate;
+    private String updatedUserId;
+    private LocalDateTime updatedDate;
+
+    // Getters and Setters
+}
+
+import javax.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+public class UserRolePermission {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private Long version;
+    private String userId;
+
+    @ManyToOne
+    private EntitlementRolePermission entitlementRolePermission;
+
+    private String createdUserId;
+    private LocalDateTime createdDate;
+    private String updatedUserId;
+    private LocalDateTime updatedDate;
+
+    // Getters and Setters
+}
+
+import com.example.roles.entitlements.model.Application;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ApplicationRepository extends JpaRepository<Application, Long> {}
+
+import com.example.roles.entitlements.model.Application;
+import com.example.roles.entitlements.repository.ApplicationRepository;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.stereotype.Component;
+
+import java.time.LocalDateTime;
+
+@Component
+public class DataInitializer implements CommandLineRunner {
+    private final ApplicationRepository applicationRepository;
+
+    public DataInitializer(ApplicationRepository applicationRepository) {
+        this.applicationRepository = applicationRepository;
+    }
+
+    @Override
+    public void run(String... args) {
+        Application app = new Application();
+        app.setName("UMBETF");
+        app.setType("Web");
+        app.setVersion(1L);
+        app.setCreatedUserId("admin");
+        app.setCreatedDate(LocalDateTime.now());
+        applicationRepository.save(app);
+
+        // Similarly add ResourceTypes and Scopes
+    }
+}
+
+import com.example.roles.entitlements.model.Resource;
+import com.example.roles.entitlements.repository.ResourceRepository;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/resources")
+public class ResourceController {
+    private final ResourceRepository resourceRepository;
+
+    public ResourceController(ResourceRepository resourceRepository) {
+        this.resourceRepository = resourceRepository;
+    }
+
+    @PostMapping
+    public Resource createResource(@RequestBody Resource resource) {
+        return resourceRepository.save(resource);
+    }
+
+    @GetMapping
+    public List<Resource> getAllResources() {
+        return resourceRepository.findAll();
+    }
+}
+
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Create Resource</title>
+</head>
+<body>
+<h1>Create Resource</h1>
+<form action="#" th:action="@{/api/resources}" th:object="${resource}" method="post">
+    <label for="name">Resource Name:</label>
+    <input type="text" id="name" th:field="*{name}" required/>
+
+    <label for="resourceType">Resource Type:</label>
+    <select id="resourceType" th:field="*{resourceType}">
+        <option th:each="type : ${resourceTypes}" th:value="${type.id}" th:text="${type.name}"></option>
+    </select>
+
+    <button type="submit">Create Resource</button>
+</form>
+</body>
+</html>
+
+spring.datasource.url=jdbc:h2:mem:testdb
+spring.datasource.driverClassName=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=password
+spring.jpa.hibernate.ddl-auto=update
