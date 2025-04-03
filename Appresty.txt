@@ -1,0 +1,150 @@
+import com.example.roles.entitlements.model.Application;
+import com.example.roles.entitlements.repository.ApplicationRepository;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+
+@Service
+public class ApplicationService {
+    private final ApplicationRepository applicationRepository;
+
+    public ApplicationService(ApplicationRepository applicationRepository) {
+        this.applicationRepository = applicationRepository;
+    }
+
+    public Application addApplication(Application application) {
+        application.setCreatedDate(LocalDateTime.now());
+        application.setUpdatedDate(LocalDateTime.now());
+        return applicationRepository.save(application);
+    }
+}
+
+import com.example.roles.entitlements.model.Application;
+import com.example.roles.entitlements.service.ApplicationService;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PostMapping;
+
+@Controller
+public class ApplicationController {
+    private final ApplicationService applicationService;
+
+    public ApplicationController(ApplicationService applicationService) {
+        this.applicationService = applicationService;
+    }
+
+    @GetMapping("/applications/new")
+    public String showApplicationForm(Model model) {
+        model.addAttribute("application", new Application());
+        return "application_form"; // Thymeleaf template name
+    }
+
+    @PostMapping("/applications")
+    public String addApplication(@ModelAttribute Application application) {
+        applicationService.addApplication(application);
+        return "redirect:/applications/new"; // Redirect to form after submission
+    }
+}
+
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Add New Application</title>
+</head>
+<body>
+<h1>Add New Application</h1>
+<form action="#" th:action="@{/applications}" th:object="${application}" method="post">
+    <label for="name">Application Name:</label>
+    <input type="text" id="name" th:field="*{name}" required/>
+
+    <label for="type">Application Type:</label>
+    <input type="text" id="type" th:field="*{type}" required/>
+
+    <label for="version">Version:</label>
+    <input type="number" id="version" th:field="*{version}" required/>
+
+    <button type="submit">Add Application</button>
+</form>
+</body>
+</html>
+
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-thymeleaf</artifactId>
+</dependency>
+
+import com.example.roles.entitlements.model.ResourceType;
+import com.example.roles.entitlements.repository.ResourceTypeRepository;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+
+@Service
+public class ResourceTypeService {
+    private final ResourceTypeRepository resourceTypeRepository;
+
+    public ResourceTypeService(ResourceTypeRepository resourceTypeRepository) {
+        this.resourceTypeRepository = resourceTypeRepository;
+    }
+
+    public ResourceType addResourceType(ResourceType resourceType) {
+        resourceType.setCreatedDate(LocalDateTime.now());
+        resourceType.setUpdatedDate(LocalDateTime.now());
+        return resourceTypeRepository.save(resourceType);
+    }
+}
+
+import com.example.roles.entitlements.model.ResourceType;
+import com.example.roles.entitlements.service.ResourceTypeService;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PostMapping;
+
+@Controller
+public class ResourceTypeController {
+    private final ResourceTypeService resourceTypeService;
+
+    public ResourceTypeController(ResourceTypeService resourceTypeService) {
+        this.resourceTypeService = resourceTypeService;
+    }
+
+    @GetMapping("/resource-types/new")
+    public String showResourceTypeForm(Model model) {
+        model.addAttribute("resourceType", new ResourceType());
+        return "resource_type_form"; // Thymeleaf template name
+    }
+
+    @PostMapping("/resource-types")
+    public String addResourceType(@ModelAttribute ResourceType resourceType) {
+        resourceTypeService.addResourceType(resourceType);
+        return "redirect:/resource-types/new"; // Redirect to form after submission
+    }
+}
+
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Add New Resource Type</title>
+</head>
+<body>
+<h1>Add New Resource Type</h1>
+<form action="#" th:action="@{/resource-types}" th:object="${resourceType}" method="post">
+    <label for="name">Resource Type Name:</label>
+    <input type="text" id="name" th:field="*{name}" required/>
+
+    <label for="description">Description:</label>
+    <input type="text" id="description" th:field="*{description}" required/>
+
+    <label for="version">Version:</label>
+    <input type="number" id="version" th:field="*{version}" required/>
+
+    <button type="submit">Add Resource Type</button>
+</form>
+</body>
+</html>
+
+import com.example.roles.entitlements.model.ResourceType;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ResourceTypeRepository extends JpaRepository<ResourceType, Long> {}
