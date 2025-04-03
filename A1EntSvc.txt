@@ -1,0 +1,50 @@
+import com.example.roles.entitlements.model.EntitlementRole;
+import com.example.roles.entitlements.model.Resource;
+import com.example.roles.entitlements.repository.EntitlementRoleRepository;
+import com.example.roles.entitlements.repository.ResourceRepository;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Service
+public class EntitlementRoleService {
+    private final EntitlementRoleRepository entitlementRoleRepository;
+    private final ResourceRepository resourceRepository;
+
+    public EntitlementRoleService(EntitlementRoleRepository entitlementRoleRepository, ResourceRepository resourceRepository) {
+        this.entitlementRoleRepository = entitlementRoleRepository;
+        this.resourceRepository = resourceRepository;
+    }
+
+    public EntitlementRole createEntitlementRole(EntitlementRole entitlementRole, Long resourceId) {
+        Resource resource = resourceRepository.findById(resourceId)
+                .orElseThrow(() -> new RuntimeException("Resource not found"));
+
+        entitlementRole.setResource(resource);
+        entitlementRole.setCreatedDate(LocalDateTime.now());
+        entitlementRole.setUpdatedDate(LocalDateTime.now());
+
+        return entitlementRoleRepository.save(entitlementRole);
+    }
+
+    public List<EntitlementRole> getAllRoles() {
+        return entitlementRoleRepository.findAll();
+    }
+
+    public void associateRoleWithScopes(Long roleId, List<Long> scopeIds) {
+        EntitlementRole entitlementRole = entitlementRoleRepository.findById(roleId)
+                .orElseThrow(() -> new RuntimeException("Entitlement Role not found"));
+
+        for (Long scopeId : scopeIds) {
+            Scope scope = scopeRepository.findById(scopeId)
+                    .orElseThrow(() -> new RuntimeException("Scope not found"));
+
+            ResourceScope resourceScope = new ResourceScope();
+            resourceScope.setResource(entitlementRole.getResource()); // Assuming the role has a resource
+            resourceScope.setScope(scope);
+            resourceScope.setCreatedDate(LocalDateTime.now());
+            resourceScopeRepository.save(resourceScope);
+        }
+    }
+}
