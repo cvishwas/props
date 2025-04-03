@@ -1,0 +1,91 @@
+import com.example.roles.entitlements.model.EntitlementRole;
+import com.example.roles.entitlements.model.Resource;
+import com.example.roles.entitlements.repository.EntitlementRoleRepository;
+import com.example.roles.entitlements.repository.ResourceRepository;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+
+@Service
+public class EntitlementRoleService {
+    private final EntitlementRoleRepository entitlementRoleRepository;
+    private final ResourceRepository resourceRepository;
+
+    public EntitlementRoleService(EntitlementRoleRepository entitlementRoleRepository, ResourceRepository resourceRepository) {
+        this.entitlementRoleRepository = entitlementRoleRepository;
+        this.resourceRepository = resourceRepository;
+    }
+
+    public EntitlementRole createEntitlementRole(EntitlementRole entitlementRole, Long resourceId) {
+        Resource resource = resourceRepository.findById(resourceId)
+                .orElseThrow(() -> new RuntimeException("Resource not found"));
+        
+        entitlementRole.setResource(resource);
+        entitlementRole.setCreatedDate(LocalDateTime.now());
+        entitlementRole.setUpdatedDate(LocalDateTime.now());
+        
+        return entitlementRoleRepository.save(entitlementRole);
+    }
+}
+
+import com.example.roles.entitlements.model.EntitlementRole;
+import com.example.roles.entitlements.service.EntitlementRoleService;
+import com.example.roles.entitlements.service.ResourceService; // To fetch resources
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import java.util.List;
+
+@Controller
+public class EntitlementRoleController {
+    private final EntitlementRoleService entitlementRoleService;
+    private final ResourceService resourceService;
+
+    public EntitlementRoleController(EntitlementRoleService entitlementRoleService, ResourceService resourceService) {
+        this.entitlementRoleService = entitlementRoleService;
+        this.resourceService = resourceService;
+    }
+
+    @GetMapping("/roles/new")
+    public String showRoleForm(Model model) {
+        model.addAttribute("entitlementRole", new EntitlementRole());
+        model.addAttribute("resources", resourceService.getAllResources()); // Fetch resources for dropdown
+        return "role_form"; // Thymeleaf template name
+    }
+
+    @PostMapping("/roles")
+    public String addEntitlementRole(@ModelAttribute EntitlementRole entitlementRole, @RequestParam Long resourceId) {
+        entitlementRoleService.createEntitlementRole(entitlementRole, resourceId);
+        return "redirect:/roles/new"; // Redirect to form after submission
+    }
+}
+
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Add New Entitlement Role</title>
+</head>
+<body>
+<h1>Add New Entitlement Role</h1>
+<form action="#" th:action="@{/roles}" th:object="${entitlementRole}" method="post">
+    <label for="name">Role Name:</label>
+    <input type="text" id="name" th:field="*{name}" required/>
+
+    <label for="description">Description:</label>
+    <input type="text" id="description" th:field="*{description}" required/>
+
+    <label for="version">Version:</label>
+    <input type="number" id="version" th:field="*{version}" required/>
+
+    <label for="resource">Select Resource:</label>
+    <select id="resource" name="resourceId" required>
+        <option th:each="resource : ${resources}" th:value="${resource.id}" th:text="${resource.name}"></option>
+    </select>
+
+    <button type="submit">Add Role</button>
+</form>
+</body>
+</html>
