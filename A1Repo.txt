@@ -1,0 +1,44 @@
+import com.example.roles.entitlements.model.Application;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ApplicationRepository extends JpaRepository<Application, Long> {}
+
+import com.example.roles.entitlements.model.ResourceType;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ResourceTypeRepository extends JpaRepository<ResourceType, Long> {}
+
+import com.example.roles.entitlements.model.Resource;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ResourceRepository extends JpaRepository<Resource, Long> {}
+
+import com.example.roles.entitlements.model.Scope;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ScopeRepository extends JpaRepository<Scope, Long> {}
+
+import com.example.roles.entitlements.model.ResourceTypeScope;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ResourceTypeScopeRepository extends JpaRepository<ResourceTypeScope, Long> {}
+
+import com.example.roles.entitlements.model.EntitlementRole;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface EntitlementRoleRepository extends JpaRepository<EntitlementRole, Long> {}
+
+import com.example.roles.entitlements.model.ResourceScope;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ResourceScopeRepository extends JpaRepository<ResourceScope, Long> {}
+
+import com.example.roles.entitlements.model.EntitlementRolePermission;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface EntitlementRolePermissionRepository extends JpaRepository<EntitlementRolePermission, Long> {}
+
+import com.example.roles.entitlements.model.UserRolePermission;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface UserRolePermissionRepository extends JpaRepository<UserRolePermission, Long> {}
