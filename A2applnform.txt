@@ -1,0 +1,20 @@
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+ <title>Add New Application</title>
+</head>
+<body>
+<h1>Add New Application</h1>
+<form action="#" th:action="@{/applications}" th:object="${application}" method="post">
+ <label for="name">Application Name:</label>
+ <input type="text" id="name" th:field="*{name}" required/>
+
+ <label for="type">Application Type:</label>
+ <input type="text" id="type" th:field="*{type}" required/>
+
+ <label for="version">Version:</label>
+ <input type="number" id="version" th:field="*{version}" required/>
+
+ <button type="submit">Add Application</button>
+</form>
+</body>
+</html>
