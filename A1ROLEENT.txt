@@ -1,0 +1,25 @@
+import javax.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+public class Role {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String name;
+    private String description;
+    
+    @ManyToOne
+    @JoinColumn(name = "resource_id", nullable = false)
+    private Resource resource;
+
+    private Long version;
+    private String createdUserId;
+    private LocalDateTime createdDate;
+    private String updatedUserId;
+    private LocalDateTime updatedDate;
+
+    // Getters and Setters
+    // ...
+}
