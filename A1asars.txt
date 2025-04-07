@@ -1,0 +1,62 @@
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Associate Role with Scopes</title>
+    <link rel="stylesheet" type="text/css" href="/css/styles.css"> <!-- Link to your stylesheet -->
+</head>
+<body>
+<h1>Associate Role with Scopes</h1>
+
+<form action="#" th:action="@{/roles/scopes}" method="post">
+    <label for="role">Select Role:</label>
+    <select id="role" name="roleId" required>
+        <option th:each="role : ${roles}" th:value="${role.id}" th:text="${role.name}"></option>
+    </select>
+
+    <label for="scopes">Select Scopes:</label>
+    <select id="scopes" name="scopeIds" multiple required>
+        <option th:each="scope : ${scopes}" th:value="${scope.id}" th:text="${scope.name}"></option>
+    </select>
+
+    <button type="submit">Associate</button>
+</form>
+</body>
+</html>
+
+import com.example.roles.entitlements.service.RoleScopeService;
+import com.example.roles.entitlements.service.RoleService; // To fetch roles
+import com.example.roles.entitlements.service.ScopeService; // To fetch scopes
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import java.util.List;
+
+@Controller
+public class RoleScopeController {
+    private final RoleScopeService roleScopeService;
+    private final RoleService roleService;
+    private final ScopeService scopeService;
+
+    public RoleScopeController(RoleScopeService roleScopeService,
+                               RoleService roleService,
+                               ScopeService scopeService) {
+        this.roleScopeService = roleScopeService;
+        this.roleService = roleService;
+        this.scopeService = scopeService;
+    }
+
+    @GetMapping("/roles/scopes/associate")
+    public String showAssociateForm(Model model) {
+        model.addAttribute("roles", roleService.getAllRoles()); // Fetch all roles
+        model.addAttribute("scopes", scopeService.getAllScopes()); // Fetch all scopes
+        return "associateRoleScope"; // Thymeleaf template name
+    }
+
+    @PostMapping("/roles/scopes")
+    public String associateRoleWithScopes(@RequestParam Long roleId, @RequestParam List<Long> scopeIds) {
+        roleScopeService.associateRoleWithScopes(roleId, scopeIds);
+        return "redirect:/roles/scopes/associate"; // Redirect after submission
+    }
+}
