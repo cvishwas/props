@@ -1,0 +1,90 @@
+Here’s a structured flow of how the calls should be made in your web application, starting from the user interface (UI) to the backend microservices and back, ensuring proper session handling and authorization.
+
+Flow of Calls
+
+User Accesses UI:
+   The user accesses the UI, and a valid userId is passed to the front-end.
+
+UI Calls Authorization Microservice:
+   The UI sends a request to the Authorization Microservice to authenticate the user and create a session.
+   Request:
+          POST /authorize
+     Content-Type: application/json
+
+     {
+       "userId": ""
+     }
+    
+
+Authorization Microservice:
+   The Authorization Microservice checks the validity of the userId.
+   If valid, it creates a session ID (e.g., sessionId) and returns it in the HTTP response header.
+   Response:
+          HTTP/1.1 200 OK
+     Set-Cookie: sessionId=;
+    
+
+UI Receives Session ID:
+   The UI retrieves the sessionId from the response header and stores it (e.g., in memory or as a cookie).
+
+UI Requests User Entitlements:
+   The UI calls another microservice (e.g., Entitlements Service) to get the user's entitlements.
+   Request:
+          GET /entitlements
+     Authorization: Bearer
+    
+
+Entitlements Microservice:
+   The Entitlements Microservice uses the sessionId to fetch user information from the database and determine what actions the user is authorized to perform.
+   The microservice returns the entitlements in the response.
+   Response:
+          HTTP/1.1 200 OK
+     Content-Type: application/json
+
+     {
+       "entitlements": [
+         "view_dashboard",
+         "edit_profile",
+         "view_reports"
+       ]
+     }
+    
+
+UI Renders Screen:
+   The UI receives the entitlements and renders the screen with appropriate links/buttons based on the entitlements.
+
+User Performs Actions:
+   When the user performs an action that requires additional service calls (e.g., view reports), the UI makes a request to the relevant microservice, passing the sessionId in the HTTP header.
+   Request:
+          GET /reports
+     Authorization: Bearer
+    
+
+Reports Microservice:
+   The Reports Microservice retrieves the session information using the sessionId to verify if the user is authorized to access the reports.
+   If authorized, it fetches the report data and sends it back to the UI.
+   Response:
+          HTTP/1.1 200 OK
+     Content-Type: application/json
+
+     {
+       "reports": [
+         {
+           "id": 1,
+           "title": "Monthly Sales",
+           "data": [...]
+         }
+       ]
+     }
+    
+
+UI Displays Reports:
+    The UI receives the report data and displays it to the user.
+
+Summary of Key Points
+Each request to a microservice containing sensitive operations must include the sessionId in the HTTP header for authorization.
+The Authorization Microservice is responsible for validating the user and creating a session.
+Other microservices check for valid session information before processing requests.
+The UI should handle session management and ensure the sessionId is included in each relevant request.
+
+This flow ensures that your system maintains a secure and efficient communication pattern while authorizing users based on their session information.
