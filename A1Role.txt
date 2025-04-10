@@ -1,0 +1,126 @@
+import com.example.roles.entitlements.model.Role;
+import com.example.roles.entitlements.model.Resource;
+import com.example.roles.entitlements.repository.RoleRepository;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Service
+public class RoleService {
+    private final RoleRepository roleRepository;
+    private final ResourceRepository resourceRepository;
+
+    public RoleService(RoleRepository roleRepository, ResourceRepository resourceRepository) {
+        this.roleRepository = roleRepository;
+        this.resourceRepository = resourceRepository;
+    }
+
+    public Role addRole(Role role, Long resourceId) {
+        Resource resource = resourceRepository.findById(resourceId)
+                .orElseThrow(() -> new RuntimeException("Resource not found"));
+        
+        role.setResource(resource); // Associate the role with the selected Resource
+        role.setCreatedDate(LocalDateTime.now());
+        role.setUpdatedDate(LocalDateTime.now());
+        return roleRepository.save(role);
+    }
+
+    public List<Resource> getResourcesByApplication(Long applicationId) {
+        return resourceRepository.findByApplicationId(applicationId); // Fetch resources for the specified application
+    }
+}
+
+import com.example.roles.entitlements.model.Role;
+import com.example.roles.entitlements.model.Resource;
+import com.example.roles.entitlements.service.RoleService;
+import com.example.roles.entitlements.service.ApplicationService; // Service to fetch applications
+import com.example.roles.entitlements.service.ResourceService; // Service to fetch resources
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import java.util.List;
+
+@Controller
+public class RoleController {
+    private final RoleService roleService;
+    private final ApplicationService applicationService;
+    private final ResourceService resourceService;
+
+    public RoleController(RoleService roleService, ApplicationService applicationService, ResourceService resourceService) {
+        this.roleService = roleService;
+        this.applicationService = applicationService;
+        this.resourceService = resourceService;
+    }
+
+    @GetMapping("/roles/new")
+    public String showRoleForm(Model model) {
+        model.addAttribute("role", new Role());
+        model.addAttribute("applications", applicationService.getAllApplications()); // Fetch applications
+        return "role_form"; // Thymeleaf template name
+    }
+
+    @GetMapping("/resources")
+    public List<Resource> getResourcesByApplication(@RequestParam Long applicationId) {
+        return resourceService.getResourcesByApplication(applicationId); // Fetch resources based on application ID
+    }
+
+    @PostMapping("/roles")
+    public String addRole(@ModelAttribute Role role, @RequestParam Long resourceId) {
+        roleService.addRole(role, resourceId);
+        return "redirect:/"; // Redirect to landing page after submission
+    }
+}
+
+import com.example.roles.entitlements.model.Application;
+import com.example.roles.entitlements.repository.ApplicationRepository;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class ApplicationService {
+    private final ApplicationRepository applicationRepository;
+
+    public ApplicationService(ApplicationRepository applicationRepository) {
+        this.applicationRepository = applicationRepository;
+    }
+
+    public List<Application> getAllApplications() {
+        return applicationRepository.findAll();
+    }
+}
+
+import com.example.roles.entitlements.model.Resource;
+import com.example.roles.entitlements.repository.ResourceRepository;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class ResourceService {
+    private final ResourceRepository resourceRepository;
+
+    public ResourceService(ResourceRepository resourceRepository) {
+        this.resourceRepository = resourceRepository;
+    }
+
+    public List<Resource> getResourcesByApplication(Long applicationId) {
+        return resourceRepository.findByApplicationId(applicationId); // Fetch resources for the specified application
+    }
+}
+
+import com.example.roles.entitlements.model.Resource;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface ResourceRepository extends JpaRepository<Resource, Long> {
+    List<Resource> findByApplicationId(Long applicationId); // Custom query method
+}
