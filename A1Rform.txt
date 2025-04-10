@@ -1,0 +1,45 @@
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Add New Role</title>
+    <link rel="stylesheet" type="text/css" href="/css/styles.css"> <!-- Link to your stylesheet -->
+    <script>
+        function fetchResources(applicationId) {
+            // Fetch resources based on the selected application
+            fetch(`/resources?applicationId=${applicationId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const resourceSelect = document.getElementById("resource");
+                    resourceSelect.innerHTML = ""; // Clear previous options
+                    data.forEach(resource => {
+                        const option = document.createElement("option");
+                        option.value = resource.id;
+                        option.text = resource.name;
+                        resourceSelect.appendChild(option);
+                    });
+                });
+        }
+    </script>
+</head>
+<body>
+<h1>Add New Role</h1>
+<form action="#" th:action="@{/roles}" th:object="${role}" method="post">
+    <label for="name">Role Name:</label>
+    <input type="text" id="name" th:field="*{name}" required/>
+
+    <label for="description">Description:</label>
+    <input type="text" id="description" th:field="*{description}" required/>
+
+    <label for="application">Select Application:</label>
+    <select id="application" name="applicationId" onchange="fetchResources(this.value)" required>
+        <option th:each="application : ${applications}" th:value="${application.id}" th:text="${application.name}"></option>
+    </select>
+
+    <label for="resource">Select Resource:</label>
+    <select id="resource" name="resourceId" required>
+        <option value="" disabled selected>Select a resource</option>
+    </select>
+
+    <button type="submit">Add Role</button>
+</form>
+</body>
+</html>
