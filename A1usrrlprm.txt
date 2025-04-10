@@ -1,0 +1,96 @@
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Associate User with Entitlement Role Permissions</title>
+    <link rel="stylesheet" type="text/css" href="/css/styles.css"> <!-- Link to your stylesheet -->
+</head>
+<body>
+<h1>Associate User with Entitlement Role Permissions</h1>
+
+<form action="#" th:action="@{/users/roles}" method="post">
+    <label for="userId">User ID:</label>
+    <input type="text" id="userId" name="userId" required/>
+
+    <label for="roles">Select Roles:</label>
+    <select id="roles" name="roleIds" multiple required>
+        <option th:each="role : ${roles}" th:value="${role.id}" th:text="${role.name}"></option>
+    </select>
+
+    <button type="submit">Associate</button>
+</form>
+</body>
+</html>
+
+import com.example.roles.entitlements.service.UserRolePermissionService;
+import com.example.roles.entitlements.service.RoleService; // To fetch roles
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import java.util.List;
+
+@Controller
+public class UserRolePermissionController {
+    private final UserRolePermissionService userRolePermissionService;
+    private final RoleService roleService;
+
+    public UserRolePermissionController(UserRolePermissionService userRolePermissionService, RoleService roleService) {
+        this.userRolePermissionService = userRolePermissionService;
+        this.roleService = roleService;
+    }
+
+    @GetMapping("/users/roles/associate")
+    public String showAssociateForm(Model model) {
+        model.addAttribute("roles", roleService.getAllRoles()); // Fetch all roles
+        return "associate_user_role_permission"; // Thymeleaf template name
+    }
+
+    @PostMapping("/users/roles")
+    public String associateUserWithRoles(@RequestParam String userId, @RequestParam List<Long> roleIds) {
+        userRolePermissionService.associateUserWithRoles(userId, roleIds);
+        return "redirect:/"; // Redirect to landing page after submission
+    }
+}
+
+import com.example.roles.entitlements.model.UserRolePermission;
+import com.example.roles.entitlements.model.Role;
+import com.example.roles.entitlements.repository.UserRolePermissionRepository;
+import com.example.roles.entitlements.repository.RoleRepository;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Service
+public class UserRolePermissionService {
+    private final UserRolePermissionRepository userRolePermissionRepository;
+    private final RoleRepository roleRepository;
+
+    public UserRolePermissionService(UserRolePermissionRepository userRolePermissionRepository, RoleRepository roleRepository) {
+        this.userRolePermissionRepository = userRolePermissionRepository;
+        this.roleRepository = roleRepository;
+    }
+
+    public void associateUserWithRoles(String userId, List<Long> roleIds) {
+        for (Long roleId : roleIds) {
+            Role role = roleRepository.findById(roleId)
+                    .orElseThrow(() -> new RuntimeException("Role not found"));
+
+            UserRolePermission userRolePermission = new UserRolePermission();
+            userRolePermission.setUserId(userId);
+            userRolePermission.setEntitlementRolePermission(role); // Assuming this is correct; you might need to adjust based on actual relationships
+            userRolePermission.setCreatedDate(LocalDateTime.now());
+            userRolePermissionRepository.save(userRolePermission);
+        }
+    }
+}
+
+import com.example.roles.entitlements.model.Role;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface RoleRepository extends JpaRepository<Role, Long> {
+    // Additional query methods can be added here if needed
+}
