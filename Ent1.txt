@@ -1,0 +1,310 @@
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.util.List;
+
+@Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Client {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String name;
+
+    @OneToMany(mappedBy = "client", cascade = CascadeType.ALL)
+    private List<Application> applications;
+}
+
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.util.List;
+
+@Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Application {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String name;
+
+    @ManyToOne
+    @JoinColumn(name = "client_id")
+    private Client client;
+
+    @OneToMany(mappedBy = "application", cascade = CascadeType.ALL)
+    private List<Resource> resources;
+}
+
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.util.List;
+
+@Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Resource {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String name;
+
+    @ManyToOne
+    @JoinColumn(name = "application_id")
+    private Application application;
+
+    @OneToMany(mappedBy = "resource", cascade = CascadeType.ALL)
+    private List<RoleScope> roleScopes;
+}
+
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.util.List;
+
+@Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Scope {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String name;
+
+    @OneToMany(mappedBy = "resourceScope", cascade = CascadeType.ALL)
+    private List<RoleScope> roleScopes;
+}
+
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.util.List;
+
+@Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Role {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String name;
+
+    @OneToMany(mappedBy = "entitlementRole", cascade = CascadeType.ALL)
+    private List<RoleScope> roleScopes;
+
+    @ManyToMany(mappedBy = "roles")
+    private List<Group> groups;
+}
+
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.time.LocalDateTime;
+
+@Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class RoleScope {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne
+    @JoinColumn(name = "resource_id")
+    private Resource resource;
+
+    @ManyToOne
+    @JoinColumn(name = "entitlement_role_id")
+    private Role entitlementRole;
+
+    @ManyToOne
+    @JoinColumn(name = "resource_scope_id")
+    private Scope resourceScope;
+
+    private String createdUserId;
+    private LocalDateTime createdDate;
+    private String updatedUserId;
+    private LocalDateTime updatedDate;
+}
+
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.util.List;
+
+@Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String firstName;
+    private String lastName;
+    private String email;
+    private String phone;
+
+    @ManyToMany
+    @JoinTable(
+        name = "user_group",
+        joinColumns = @JoinColumn(name = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "group_id")
+    )
+    private List<Group> groups;
+}
+
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.util.List;
+
+@Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Group {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String name;
+    private String description;
+
+    @ManyToMany
+    @JoinTable(
+        name = "user_group",
+        joinColumns = @JoinColumn(name="group_id"),
+        inverseJoinColumns = @JoinColumn(name="user_id")
+    )
+    private List<User> users;
+
+    @ManyToMany
+    @JoinTable(
+        name = "group_role",
+        joinColumns = @JoinColumn(name="group_id"),
+        inverseJoinColumns = @JoinColumn(name="role_id")
+    )
+    private List<Role> roles;
+}
+
+import com.example.rolemgmt.model.*;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface ClientRepository extends JpaRepository<Client, Long> {}
+@Repository
+public interface ApplicationRepository extends JpaRepository<Application, Long> {}
+@Repository
+public interface ResourceRepository extends JpaRepository<Resource, Long> {}
+@Repository
+public interface ScopeRepository extends JpaRepository<Scope, Long> {}
+@Repository
+public interface RoleRepository extends JpaRepository<Role, Long> {}
+@Repository
+public interface RoleScopeRepository extends JpaRepository<RoleScope, Long> {}
+@Repository
+public interface UserRepository extends JpaRepository<User, Long> {}
+@Repository
+public interface GroupRepository extends JpaRepository<Group, Long> {}
+
+import com.example.rolemgmt.model.*;
+import com.example.rolemgmt.repository.*;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Service
+public class RoleService {
+
+    private final RoleRepository roleRepository;
+    private final ResourceRepository resourceRepository;
+    private final ScopeRepository scopeRepository;
+    private final RoleScopeRepository roleScopeRepository;
+
+    public RoleService(RoleRepository roleRepository, ResourceRepository resourceRepository,
+                       ScopeRepository scopeRepository, RoleScopeRepository roleScopeRepository) {
+        this.roleRepository = roleRepository;
+        this.resourceRepository = resourceRepository;
+        this.scopeRepository = scopeRepository;
+        this.roleScopeRepository = roleScopeRepository;
+    }
+
+    // Example: create a role
+    @Transactional
+    public Role createRole(String roleName) {
+        Role role = new Role();
+        role.setName(roleName);
+        return roleRepository.save(role);
+    }
+
+    // Additional methods for CRUD operations...
+}
+
+import com.example.rolemgmt.model.Role;
+import com.example.rolemgmt.repository.RoleRepository;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/roles")
+public class RoleController {
+    private final RoleRepository roleRepository;
+
+    public RoleController(RoleRepository roleRepository) {
+        this.roleRepository = roleRepository;
+    }
+
+    @GetMapping
+    public List<Role> getAllRoles() {
+        return roleRepository.findAll();
+    }
+
+    @PostMapping
+    public Role createRole(@RequestBody Role role) {
+        return roleRepository.save(role);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Role> getRole(@PathVariable Long id) {
+        return roleRepository.findById(id)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Role> updateRole(@PathVariable Long id, @RequestBody Role roleDetails) {
+        return roleRepository.findById(id).map(role -> {
+            role.setName(roleDetails.getName());
+            return ResponseEntity.ok(roleRepository.save(role));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteRole(@PathVariable Long id) {
+        return roleRepository.findById(id).map(role -> {
+            roleRepository.delete(role);
+            return ResponseEntity.ok().build();
+        }).orElse(ResponseEntity.notFound().build());
+    }
+}
