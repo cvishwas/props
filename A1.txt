@@ -1,67 +1,254 @@
-import com.example.entitlementservice.model.GroupEntitlement;
-import com.example.entitlementservice.repository.GroupEntitlementRepository;
-import com.example.entitlementservice.repository.GroupRepository;
-import com.example.entitlementservice.repository.EntitlementRepository;
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.example</groupId>
+    <artifactId>client-microservice</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+
+    <properties>
+        <java.version>17</java.version>
+        <spring.boot.version>3.0.0</spring.boot.version>
+    </properties>
+
+    <dependencies>
+        <!-- Spring Boot Starter Web -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Spring Boot Starter Data JPA -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+
+        <!-- H2 Database -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Lombok (optional, for reducing boilerplate) -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.24</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Spring Boot Starter Test (for testing) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+
+spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+spring.datasource.driverClassName=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=
+spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
+spring.jpa.hibernate.ddl-auto=update
+spring.h2.console.enabled=true
+spring.h2.console.path=/h2-console
+
+INSERT INTO client (id, name, email) VALUES (2, 'Client Two', 'client2@example.com');
+
+INSERT INTO application (id, name, client_id) VALUES (1, 'App One', 1);
+INSERT INTO application (id, name, client_id) VALUES (2, 'App Two', 1);
+INSERT INTO application (id, name, client_id) VALUES (3, 'App Three', 2);
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class ClientApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(ClientApplication.class, args);
+    }
+}
+
+import jakarta.persistence.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Entity
+@Data
+@NoArgsConstructor
+public class Client {
+    @Id
+    private Long id;
+
+    private String name;
+
+    private String email;
+
+    @OneToMany(mappedBy = "client", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Application> applications;
+}
+
+@Entity
+@Data
+@NoArgsConstructor
+public class Application {
+    @Id
+    private Long id;
+
+    private String name;
+
+    @ManyToOne
+    @JoinColumn(name = "client_id")
+    private Client client;
+}
+
+import com.example.model.Client;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ClientRepository extends JpaRepository<Client, Long> {
+}
+
+package com.example.repository;
+
+import com.example.model.Application;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ApplicationRepository extends JpaRepository<Application, Long> {
+}
+
+import com.example.model.Client;
+import com.example.repository.ClientRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 @Service
-public class GroupEntitlementService {
+public class ClientService {
 
     @Autowired
-    private GroupRepository groupRepository;
+    private ClientRepository clientRepository;
 
-    @Autowired
-    private EntitlementRepository entitlementRepository;
-
-    @Autowired
-    private GroupEntitlementRepository groupEntitlementRepository;
-
-    public void associateGroupWithEntitlements(Long groupId, List<Long> entitlementIds) {
-        // Check if the group exists
-        if (!groupRepository.existsById(groupId)) {
-            throw new IllegalArgumentException("Group does not exist");
-        }
-
-        // Get existing associations
-        List<GroupEntitlement> existingAssociations = groupEntitlementRepository.findAllByGroupId(groupId);
-
-        // Create a set of existing entitlement IDs
-        Set<Long> existingEntitlementIds = existingAssociations.stream()
-                .map(GroupEntitlement::getEntitlementId)
-                .collect(Collectors.toSet());
-
-        // Add new associations for entitlements that are not already associated
-        for (Long entitlementId : entitlementIds) {
-            if (!existingEntitlementIds.contains(entitlementId)) {
-                if (!entitlementRepository.existsById(entitlementId)) {
-                    throw new IllegalArgumentException("Entitlement with ID " + entitlementId + " does not exist");
-                }
-                GroupEntitlement groupEntitlement = new GroupEntitlement();
-                groupEntitlement.setGroupId(groupId);
-                groupEntitlement.setEntitlementId(entitlementId);
-                groupEntitlementRepository.save(groupEntitlement);
-            }
-        }
-
-        // Remove associations for entitlements that are no longer selected
-        for (GroupEntitlement association : existingAssociations) {
-            if (!entitlementIds.contains(association.getEntitlementId())) {
-                groupEntitlementRepository.delete(association);
-            }
-        }
-    }
-
-    public List<Entitlement> getEntitlementsByGroupId(Long groupId) {
-        // Fetch associated entitlements for the given group ID
-        return groupEntitlementRepository.findAllByGroupId(groupId).stream()
-                .map(groupEntitlement -> entitlementRepository.findById(groupEntitlement.getEntitlementId()).orElse(null))
-                .filter(entitlement -> entitlement != null)
-                .collect(Collectors.toList());
+    public Optional<Client> getClientWithApplications(Long clientId) {
+        return clientRepository.findById(clientId);
     }
 }
+
+import com.example.model.Client;
+import com.example.service.ClientService;
+import com.example.dto.ClientResponse;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Optional;
+
+@RestController
+@RequestMapping("/api/clients")
+public class ClientController {
+
+    @Autowired
+    private ClientService clientService;
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ClientResponse> getClient(@PathVariable Long id) {
+        Optional<Client> clientOpt = clientService.getClientWithApplications(id);
+        if (clientOpt.isPresent()) {
+            return ResponseEntity.ok(new ClientResponse(clientOpt.get()));
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+}
+
+import com.example.model.Client;
+import java.util.List;
+import java.util.stream.Collectors;
+
+public class ClientResponse {
+    private Long id;
+    private String name;
+    private String email;
+    private List<ApplicationDto> applications;
+
+    public ClientResponse(Client client) {
+        this.id = client.getId();
+        this.name = client.getName();
+        this.email = client.getEmail();
+        this.applications = client.getApplications().stream()
+                .map(ApplicationDto::new)
+                .collect(Collectors.toList());
+    }
+
+    // Getters and Setters
+
+    public static class ApplicationDto {
+        private Long id;
+        private String name;
+
+        public ApplicationDto(Application application) {
+            this.id = application.getId();
+            this.name = application.getName();
+        }
+
+        // Getters and setters
+        public Long getId() {
+            return id;
+        }
+
+        public void setId(Long id) {
+            this.id = id;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+    }
+
+    // Getters and setters
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public List<ApplicationDto>
