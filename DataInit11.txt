@@ -1,0 +1,56 @@
+import com.example.entity.Client;
+import com.example.entity.Application;
+import com.example.repository.ClientRepository;
+import com.example.repository.ApplicationRepository;
+
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import java.util.Arrays;
+
+@Configuration
+public class DataInitializer {
+
+    @Bean
+    public CommandLineRunner initData(ClientRepository clientRepository, ApplicationRepository applicationRepository) {
+        return args -> {
+            // Check if data already exists to avoid duplicates
+            if (clientRepository.count() == 0) {
+
+                // Create clients
+                Client client1 = new Client();
+                client1.setId(1L);
+                client1.setName("Client One");
+                client1.setEmail("client1@example.com");
+
+                Client client2 = new Client();
+                client2.setId(2L);
+                client2.setName("Client Two");
+                client2.setEmail("client2@example.com");
+
+                // Save clients
+                clientRepository.saveAll(Arrays.asList(client1, client2));
+
+                // Create applications
+                Application app1 = new Application();
+                app1.setId(1L);
+                app1.setName("App One");
+                app1.setClient(client1);
+
+                Application app2 = new Application();
+                app2.setId(2L);
+                app2.setName("App Two");
+                app2.setClient(client1);
+
+                Application app3 = new Application();
+                app3.setId(3L);
+                app3.setName("App Three");
+                app3.setClient(client2);
+
+                // Save applications
+                applicationRepository.saveAll(Arrays.asList(app1, app2, app3));
+            }
+        };
+    }
+}
