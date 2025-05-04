@@ -1,0 +1,45 @@
+private Long id;
+    private String name;
+    private String email;
+    private List<ApplicationDto> applications;
+
+    public ClientResponse(Client client) {
+        this.id = client.getId();
+        this.name = client.getName();
+        this.email = client.getEmail();
+        this.applications = client.getApplications() != null
+            ? client.getApplications().stream()
+                .map(ApplicationDto::new)
+                .collect(Collectors.toList())
+            : List.of();
+    }
+
+    // nested DTOs
+    public static class ApplicationDto {
+        private Long id;
+        private String name;
+        private List<ResourceDto> resources;
+
+        public ApplicationDto(Application application) {
+            this.id = application.getId();
+            this.name = application.getName();
+            this.resources = application.getResources() != null
+                ? application.getResources().stream()
+                    .map(ResourceDto::new)
+                    .collect(Collectors.toList())
+                : List.of();
+        }
+    }
+
+    public static class ResourceDto {
+        private Long id;
+        private String name;
+        private String resourceType;
+
+        public ResourceDto(Resource resource) {
+            this.id = resource.getId();
+            this.name = resource.getName();
+            this.resourceType = resource.getResourceType().getName();
+        }
+    }
+}
