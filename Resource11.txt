@@ -1,0 +1,214 @@
+import jakarta.persistence.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Entity
+@Data
+@NoArgsConstructor
+public class Resource {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String name; // e.g., R1, R2, R3
+
+    @ManyToOne
+    @JoinColumn(name = "application_id")
+    private Application application;
+
+    @ManyToOne
+    @JoinColumn(name = "resource_type_id")
+    private ResourceType resourceType;
+}
+
+import jakarta.persistence.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Set;
+
+@Entity
+@Data
+@NoArgsConstructor
+public class Application {
+
+    @Id
+    private Long id;
+
+    private String name;
+
+    @ManyToOne
+    @JoinColumn(name = "client_id")
+    private Client client;
+
+    @ManyToMany
+    @JoinTable(
+        name = "application_resource_type",
+        joinColumns = @JoinColumn(name = "application_id"),
+        inverseJoinColumns = @JoinColumn(name = "resource_type_id")
+    )
+    private Set<ResourceType> resourceTypes;
+
+    @OneToMany(mappedBy = "application", cascade = CascadeType.ALL)
+    private Set<Resource> resources;
+}
+
+import com.example.entity.Resource;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ResourceRepository extends JpaRepository<Resource, Long> {
+}
+
+import com.example.entity.*;
+
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import java.util.*;
+
+@Configuration
+public class DataInitializer {
+
+    @Bean
+    public CommandLineRunner initData(
+            ClientRepository clientRepository,
+            ApplicationRepository applicationRepository,
+            ResourceTypeRepository resourceTypeRepository,
+            ResourceRepository resourceRepository) {
+        return args -> {
+            if (clientRepository.count() == 0) {
+                // Create Resource Types
+                ResourceType webApp = new ResourceType();
+                webApp.setName("WebApplication");
+                ResourceType dataset = new ResourceType();
+                dataset.setName("Dataset");
+                ResourceType network = new ResourceType();
+                network.setName("Network");
+                resourceTypeRepository.saveAll(Arrays.asList(webApp, dataset, network));
+
+                // Create Clients
+                Client client1 = new Client();
+                client1.setId(1L);
+                client1.setName("Client One");
+                client1.setEmail("client1@example.com");
+
+                Client client2 = new Client();
+                client2.setId(2L);
+                client2.setName("Client Two");
+                client2.setEmail("client2@example.com");
+
+                clientRepository.saveAll(Arrays.asList(client1, client2));
+
+                // Create Applications
+                Application app1 = new Application();
+                app1.setId(1L);
+                app1.setName("Application One");
+                app1.setClient(client1);
+                app1.setResourceTypes(new HashSet<>(Arrays.asList(webApp, dataset)));
+
+                Application app2 = new Application();
+                app2.setId(2L);
+                app2.setName("Application Two");
+                app2.setClient(client1);
+                app2.setResourceTypes(new HashSet<>(Collections.singletonList(network)));
+
+                Application app3 = new Application();
+                app3.setId(3L);
+                app3.setName("Application Three");
+                app3.setClient(client2);
+                app3.setResourceTypes(new HashSet<>(Arrays.asList(webApp, network)));
+
+                applicationRepository.saveAll(Arrays.asList(app1, app2, app3));
+
+                // Create Resources for app1
+                Resource r1 = new Resource();
+                r1.setName("R1");
+                r1.setApplication(app1);
+                r1.setResourceType(webApp);
+
+                Resource r2 = new Resource();
+                r2.setName("R2");
+                r2.setApplication(app1);
+                r2.setResourceType(dataset);
+
+                Resource r3 = new Resource();
+                r3.setName("R3");
+                r3.setApplication(app1);
+                r3.setResourceType(webApp);
+
+                // Resources for app2
+                Resource r4 = new Resource();
+                r4.setName("R4");
+                r4.setApplication(app2);
+                r4.setResourceType(network);
+
+                // Resources for app3
+                Resource r5 = new Resource();
+                r5.setName("R5");
+                r5.setApplication(app3);
+                r5.setResourceType(webApp);
+
+                Resource r6 = new Resource();
+                r6.setName("R6");
+                r6.setApplication(app3);
+                r6.setResourceType(network);
+
+                resourceRepository.saveAll(Arrays.asList(r1, r2, r3, r4, r5, r6));
+            }
+        };
+    }
+}
+
+import com.example.model.Client;
+import java.util.List;
+import java.util.stream.Collectors;
+
+public class ClientResponse {
+    private Long id;
+    private String name;
+    private String email;
+    private List<ApplicationDto> applications;
+
+    public ClientResponse(Client client) {
+        this.id = client.getId();
+        this.name = client.getName();
+        this.email = client.getEmail();
+        this.applications = client.getApplications().stream()
+            .map(ApplicationDto::new)
+            .collect(Collectors.toList());
+    }
+
+    // Getters and setters
+
+    public static class ApplicationDto {
+        private Long id;
+        private String name;
+        private List<ResourceDto> resources;
+
+        public ApplicationDto(Application application) {
+            this.id = application.getId();
+            this.name = application.getName();
+            this.resources = application.getResources().stream()
+                .map(ResourceDto::new)
+                .collect(Collectors.toList());
+        }
+
+        // Getters and setters
+    }
+
+    public static class ResourceDto {
+        private Long id;
+        private String name;
+        private String resourceType;
+
+        public ResourceDto(Resource resource) {
+            this.id = resource.getId();
+            this.name = resource.getName();
+            this.resourceType = resource.getResourceType().getName();
+        }
+
+        // Getters and setters
+    }
+}
