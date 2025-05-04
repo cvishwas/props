@@ -1,0 +1,135 @@
+import jakarta.persistence.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Entity
+@Data
+@NoArgsConstructor
+public class ResourceType {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String name; // e.g., WebApplication, Dataset, Network
+}
+
+import jakarta.persistence.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Set;
+
+@Entity
+@Data
+@NoArgsConstructor
+public class Application {
+
+    @Id
+    private Long id;
+
+    private String name;
+
+    @ManyToOne
+    @JoinColumn(name = "client_id")
+    private Client client;
+
+    @ManyToMany
+    @JoinTable(
+        name = "application_resource_type",
+        joinColumns = @JoinColumn(name = "application_id"),
+        inverseJoinColumns = @JoinColumn(name = "resource_type_id")
+    )
+    private Set<ResourceType> resourceTypes;
+}
+
+import com.example.entity.ResourceType;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ResourceTypeRepository extends JpaRepository<ResourceType, Long> {
+}
+
+import com.example.entity.Application;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ApplicationRepository extends JpaRepository<Application, Long> {
+}
+
+import com.example.entity.Client;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ClientRepository extends JpaRepository<Client, Long> {
+}
+
+import com.example.entity.Client;
+import com.example.entity.Application;
+import com.example.entity.ResourceType;
+import com.example.repository.ClientRepository;
+import com.example.repository.ApplicationRepository;
+import com.example.repository.ResourceTypeRepository;
+
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import java.util.Arrays;
+import java.util.HashSet;
+
+@Configuration
+public class DataInitializer {
+
+    @Bean
+    public CommandLineRunner initData(
+            ClientRepository clientRepository,
+            ApplicationRepository applicationRepository,
+            ResourceTypeRepository resourceTypeRepository) {
+        return args -> {
+            if (clientRepository.count() == 0) {
+
+                // Create Resource Types
+                ResourceType webApp = new ResourceType();
+                webApp.setName("WebApplication");
+                ResourceType dataset = new ResourceType();
+                dataset.setName("Dataset");
+                ResourceType network = new ResourceType();
+                network.setName("Network");
+
+                resourceTypeRepository.saveAll(Arrays.asList(webApp, dataset, network));
+
+                // Create Clients
+                Client client1 = new Client();
+                client1.setId(1L);
+                client1.setName("Client One");
+                client1.setEmail("client1@example.com");
+
+                Client client2 = new Client();
+                client2.setId(2L);
+                client2.setName("Client Two");
+                client2.setEmail("client2@example.com");
+
+                clientRepository.saveAll(Arrays.asList(client1, client2));
+
+                // Create Applications with multiple Resource Types
+                Application app1 = new Application();
+                app1.setId(1L);
+                app1.setName("Application One");
+                app1.setClient(client1);
+                app1.setResourceTypes(new HashSet<>(Arrays.asList(webApp, dataset)));
+
+                Application app2 = new Application();
+                app2.setId(2L);
+                app2.setName("Application Two");
+                app2.setClient(client1);
+                app2.setResourceTypes(new HashSet<>(Arrays.asList(network)));
+
+                Application app3 = new Application();
+                app3.setId(3L);
+                app3.setName("Application Three");
+                app3.setClient(client2);
+                app3.setResourceTypes(new HashSet<>(Arrays.asList(webApp, network)));
+
+                applicationRepository.saveAll(Arrays.asList(app1, app2, app3));
+            }
+        };
+    }
+}
