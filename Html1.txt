@@ -1,0 +1,83 @@
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Client Details with Resources</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 40px;
+    }
+    label, input {
+        font-size: 1em;
+    }
+    button {
+        margin-left: 10px;
+        font-size: 1em;
+    }
+    #result {
+        margin-top: 20px;
+        border: 1px solid #ccc;
+        padding: 15px;
+        max-width: 800px;
+    }
+    h2 {
+        margin-top: 0;
+    }
+</style>
+</head>
+<body>
+<h1>Client Details Lookup with Resources</h1>
+<label for="clientId">Enter Client ID:</label>
+<input type="number" id="clientId" />
+<button onclick="fetchClientDetails()">Get Details</button>
+
+<div id="result"></div>
+
+<script>
+function fetchClientDetails() {
+    const clientId = document.getElementById('clientId').value;
+    const resultDiv = document.getElementById('result');
+
+    if (!clientId) {
+        alert('Please enter a client ID');
+        return;
+    }
+
+    fetch(`/api/clients/${clientId}`)
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            } else {
+                throw new Error('Client not found');
+            }
+        })
+        .then(data => {
+            // Build HTML for client, applications, resources, and resource types
+            let html = `
+                <h2>Client Details</h2>
+                <p><strong>ID:</strong> ${data.id}</p>
+                <p><strong>Name:</strong> ${data.name}</p>
+                <p><strong>Email:</strong> ${data.email}</p>
+                <h3>Applications and Resources:</h3>
+                ${data.applications.length > 0 ? data.applications.map(app => `
+                    <div style="margin-left:20px; border:1px solid #ddd; padding:10px; margin-bottom:10px;">
+                        <h4>Application: ${app.name} (ID: ${app.id})</h4>
+                        <ul>
+                            ${app.resources.length > 0 ? app.resources.map(res => `
+                                <li>
+                                    Resource: ${res.name} (ID: ${res.id}) - Type: ${res.resourceType}
+                                </li>
+                            `).join('') : '<li>No resources</li>'}
+                        </ul>
+                    </div>
+                `).join('') : '<p>No applications found for this client.</p>'}
+            `;
+            resultDiv.innerHTML = html;
+        })
+        .catch(error => {
+            resultDiv.innerHTML = `<p style="color:red;">${error.message}</p>`;
+        });
+}
+</script>
+</body>
+</html>
