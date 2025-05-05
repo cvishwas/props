@@ -1,0 +1,60 @@
+import com.example.entity.Client;
+import com.example.entity.Application;
+import com.example.entity.Resource;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+public class ClientResponse {
+    private Long id;
+    private String name;
+    private String email;
+    private List<ApplicationDto> applications;
+
+    public ClientResponse(Client client) {
+        this.id = client.getId();
+        this.name = client.getName();
+        this.email = client.getEmail();
+        this.applications = client.getApplications() != null
+            ? client.getApplications().stream()
+                .map(ApplicationDto::new)
+                .collect(Collectors.toList())
+            : List.of();
+    }
+
+    // Getters and setters...
+
+    public static class ApplicationDto {
+        private Long id;
+        private String name;
+        private List<ResourceDto> resources;
+
+        public ApplicationDto(Application application) {
+            this.id = application.getId();
+            this.name = application.getName();
+            this.resources = application.getResources() != null
+                ? application.getResources().stream()
+                    .map(ResourceDto::new)
+                    .collect(Collectors.toList())
+                : List.of();
+        }
+
+        // Getters and setters...
+    }
+
+    public static class ResourceDto {
+        private Long id;
+        private String name;
+        private String resourceType;
+
+        public ResourceDto(Resource resource) {
+            this.id = resource.getId();
+            this.name = resource.getName();
+            this.resourceType = resource.getResourceType().getName();
+        }
+
+        // Getters and setters...
+    }
+
+    // Getters and setters for ClientResponse...
+}
