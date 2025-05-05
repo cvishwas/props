@@ -1,0 +1,35 @@
+import com.example.entity.Client;
+import com.example.repository.ClientRepository;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/clients")
+public class ClientController {
+
+    private final ClientRepository clientRepository;
+
+    public ClientController(ClientRepository clientRepository) {
+        this.clientRepository = clientRepository;
+    }
+
+    // Get client details directly
+    @GetMapping("/{id}")
+    public ResponseEntity<Client> getClient(@PathVariable Long id) {
+        return clientRepository.findById(id)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    // Delete client
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteClient(@PathVariable Long id) {
+        if (clientRepository.existsById(id)) {
+            clientRepository.deleteById(id);
+            return ResponseEntity.noContent().build();
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+}
