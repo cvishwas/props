@@ -1,0 +1,122 @@
+import jakarta.persistence.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Entity
+@Data
+@NoArgsConstructor
+public class Scope {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String name; // e.g., Read Only, Write, Read and Write
+}
+
+import jakarta.persistence.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Set;
+
+@Entity
+@Data
+@NoArgsConstructor
+public class Resource {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String name; // R1, R2, R3, etc.
+
+    @ManyToOne
+    @JoinColumn(name = "application_id")
+    private Application application;
+
+    @ManyToOne
+    @JoinColumn(name = "resource_type_id")
+    private ResourceType resourceType;
+
+    @ManyToMany
+    @JoinTable(
+        name = "resource_scope",
+        joinColumns = @JoinColumn(name = "resource_id"),
+        inverseJoinColumns = @JoinColumn(name = "scope_id")
+    )
+    private Set<Scope> scopes;
+}
+
+import com.example.entity.Scope;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ScopeRepository extends JpaRepository<Scope, Long> {
+}
+
+import com.example.entity.*;
+import com.example.repository.*;
+
+// imports...
+
+@Configuration
+public class DataInitializer {
+
+    @Bean
+    public CommandLineRunner initData(
+            ClientRepository clientRepository,
+            ApplicationRepository applicationRepository,
+            ResourceTypeRepository resourceTypeRepository,
+            ResourceRepository resourceRepository,
+            ScopeRepository scopeRepository) {
+        return args -> {
+            if (clientRepository.count() == 0) {
+                // Create Scopes
+                Scope readOnly = new Scope();
+                readOnly.setName("Read Only");
+                Scope write = new Scope();
+                write.setName("Write");
+                Scope readWrite = new Scope();
+                readWrite.setName("Read and Write");
+                scopeRepository.saveAll(Arrays.asList(readOnly, write, readWrite));
+
+                // Create Resource Types, Clients, Applications as before...
+
+                // Create Resources
+                // Example resource with multiple scopes
+                Resource r1 = new Resource();
+                r1.setName("R1");
+                r1.setApplication(app1);
+                r1.setResourceType(webApp);
+                r1.setScopes(new HashSet<>(Arrays.asList(readOnly, write)));
+
+                Resource r2 = new Resource();
+                r2.setName("R2");
+                r2.setApplication(app1);
+                r2.setResourceType(dataset);
+                r2.setScopes(new HashSet<>(Collections.singletonList(readWrite)));
+
+                // ... other resources
+
+                resourceRepository.saveAll(Arrays.asList(r1, r2 /*, other resources*/));
+            }
+        };
+    }
+}
+
+    private Long id;
+    private String name;
+    private String resourceType;
+    private List<String> scopes;
+
+    public ResourceDto(Resource resource) {
+        this.id = resource.getId();
+        this.name = resource.getName();
+        this.resourceType = resource.getResourceType().getName();
+        this.scopes = resource.getScopes() != null
+            ? resource.getScopes().stream()
+                .map(Scope::getName)
+                .collect(Collectors.toList())
+            : List.of();
+    }
+}
