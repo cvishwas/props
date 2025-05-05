@@ -1,0 +1,105 @@
+import com.example.entity.*;
+import com.example.repository.*;
+
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import java.util.*;
+
+@Configuration
+public class DataInitializer {
+
+    @Bean
+    public CommandLineRunner initData(
+            ClientRepository clientRepository,
+            ApplicationRepository applicationRepository,
+            ResourceRepository resourceRepository,
+            ResourceTypeRepository resourceTypeRepository,
+            ScopeRepository scopeRepository) {
+        return args -> {
+            if (clientRepository.count() == 0) {
+                // Create Resource Types
+                ResourceType rtWeb = new ResourceType();
+                rtWeb.setName("WebApplication");
+                ResourceType rtData = new ResourceType();
+                rtData.setName("Dataset");
+                ResourceType rtNetwork = new ResourceType();
+                rtNetwork.setName("Network");
+                resourceTypeRepository.saveAll(Arrays.asList(rtWeb, rtData, rtNetwork));
+
+                // Create Clients
+                Client client1 = new Client();
+                client1.setName("Client One");
+                client1.setEmail("client1@example.com");
+                Client client2 = new Client();
+                client2.setName("Client Two");
+                client2.setEmail("client2@example.com");
+                clientRepository.saveAll(Arrays.asList(client1, client2));
+
+                // Create Applications
+                Application app1 = new Application();
+                app1.setName("Application One");
+                app1.setClient(client1);
+                Application app2 = new Application();
+                app2.setName("Application Two");
+                app2.setClient(client1);
+                Application app3 = new Application();
+                app3.setName("Application Three");
+                app3.setClient(client2);
+                applicationRepository.saveAll(Arrays.asList(app1, app2, app3));
+
+                // Create Resources for Application One
+                Resource r1 = new Resource();
+                r1.setName("Resource R1");
+                r1.setApplication(app1);
+                r1.setResourceType(rtWeb);
+
+                Resource r2 = new Resource();
+                r2.setName("Resource R2");
+                r2.setApplication(app1);
+                r2.setResourceType(rtData);
+
+                // Resources for Application Two
+                Resource r3 = new Resource();
+                r3.setName("Resource R3");
+                r3.setApplication(app2);
+                r3.setResourceType(rtNetwork);
+
+                // Resources for Application Three
+                Resource r4 = new Resource();
+                r4.setName("Resource R4");
+                r4.setApplication(app3);
+                r4.setResourceType(rtWeb);
+
+                Resource r5 = new Resource();
+                r5.setName("Resource R5");
+                r5.setApplication(app3);
+                r5.setResourceType(rtNetwork);
+
+                resourceRepository.saveAll(Arrays.asList(r1, r2, r3, r4, r5));
+
+                // Create Scopes for Resources
+                Scope sReadOnly = new Scope();
+                sReadOnly.setName("Read Only");
+                sReadOnly.setResource(r1);
+                Scope sWrite = new Scope();
+                sWrite.setName("Write");
+                sWrite.setResource(r1);
+                Scope sReadWrite = new Scope();
+                sReadWrite.setName("Read and Write");
+                sReadWrite.setResource(r2);
+                Scope sReadOnly2 = new Scope();
+                sReadOnly2.setName("Read Only");
+                sReadOnly2.setResource(r3);
+                Scope sReadWrite2 = new Scope();
+                sReadWrite2.setName("Read and Write");
+                sReadWrite2.setResource(r4);
+                Scope sReadOnly3 = new Scope();
+                sReadOnly3.setName("Read Only");
+                sReadOnly3.setResource(r5);
+                scopeRepository.saveAll(Arrays.asList(sReadOnly, sWrite, sReadWrite, sReadOnly2, sReadWrite2, sReadOnly3));
+            }
+        };
+    }
+}
