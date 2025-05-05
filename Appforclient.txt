@@ -1,0 +1,35 @@
+import com.example.entity.Application;
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.List;
+
+public interface ApplicationRepository extends JpaRepository<Application, Long> {
+    List<Application> findByClientId(Long clientId);
+}
+
+import com.example.entity.Application;
+import com.example.repository.ApplicationRepository;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api")
+public class ApplicationController {
+
+    private final ApplicationRepository applicationRepository;
+
+    public ApplicationController(ApplicationRepository applicationRepository) {
+        this.applicationRepository = applicationRepository;
+    }
+
+    @GetMapping("/clients/{clientId}/applications")
+    public ResponseEntity<List<Application>> getApplicationsByClientId(@PathVariable Long clientId) {
+        List<Application> applications = applicationRepository.findByClientId(clientId);
+        if (applications.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(applications);
+    }
+}
