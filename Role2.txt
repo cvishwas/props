@@ -1,0 +1,292 @@
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Create Role for Application</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; }
+  label, select, input { display: block; margin-top: 10px; width: 300px; }
+  select[multiple] { height: 100px; }
+  button { margin-top: 20px; }
+</style>
+</head>
+<body>
+
+<h1>Create Role for Application</h1>
+
+<!-- Application dropdown -->
+<label for="applicationSelect">Select Application:</label>
+<select id="applicationSelect"></select>
+
+<!-- Resource dropdown -->
+<label for="resourceSelect">Select Resource:</label>
+<select id="resourceSelect"></select>
+
+<!-- Scopes multiselect -->
+<label for="scopesSelect">Select Scopes:</label>
+<select id="scopesSelect" multiple></select>
+
+<!-- Role Name -->
+<label for="roleName">Role Name:</label>
+<input type="text" id="roleName" placeholder="Enter role name" />
+
+<!-- Create Button -->
+<button onclick="createRole()">Create Role</button>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  loadApplications();
+});
+
+// Load all applications
+function loadApplications() {
+  fetch('/api/applications')
+    .then(res => res.json())
+    .then(apps => {
+      const appSel = document.getElementById('applicationSelect');
+      appSel.innerHTML = '';
+      apps.forEach(app => {
+        const opt = document.createElement('option');
+        opt.value = app.id;
+        opt.text = app.name;
+        appSel.appendChild(opt);
+      });
+      loadResourcesForApplication(appSel.value);
+      appSel.addEventListener('change', () => {
+        loadResourcesForApplication(appSel.value);
+      });
+    });
+}
+
+// Load resources for selected application
+function loadResourcesForApplication(appId) {
+  fetch(`/api/applications/${appId}`)
+    .then(res => res.json())
+    .then(app => {
+      const resSel = document.getElementById('resourceSelect');
+      resSel.innerHTML = '';
+      if (app.resources && app.resources.length > 0) {
+        app.resources.forEach(r => {
+          const opt = document.createElement('option');
+          opt.value = r.id;
+          opt.text = r.name + ' (' + r.resourceType + ')';
+          resSel.appendChild(opt);
+        });
+        loadScopesForResource(resSel.value);
+      } else {
+        resSel.innerHTML = '<option>No resources</option>';
+        document.getElementById('scopesSelect').innerHTML = '';
+      }
+    });
+}
+
+// When resource dropdown changes, load its scopes
+document.getElementById('resourceSelect').addEventListener('change', () => {
+  loadScopesForResource(document.getElementById('resourceSelect').value);
+});
+
+// Load scopes for a resource
+function loadScopesForResource(resourceId) {
+  fetch(`/api/resources/${resourceId}`)
+    .then(res => res.json())
+    .then(resource => {
+      const scopesSel = document.getElementById('scopesSelect');
+      scopesSel.innerHTML = '';
+      if (resource.scopes && resource.scopes.length > 0) {
+        resource.scopes.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s.name;
+          opt.innerText = s.name;
+          scopesSel.appendChild(opt);
+        });
+      } else {
+        scopesSel.innerHTML = '<option>No scopes</option>';
+      }
+    });
+}
+
+// Create role with selected resource and scopes
+function createRole() {
+  const roleName = document.getElementById('roleName').value.trim();
+  if (!roleName) {
+    alert('Enter role name');
+    return;
+  }
+
+  const applicationId = document.getElementById('applicationSelect').value;
+  const resourceId = document.getElementById('resourceSelect').value;
+  const selectedScopes = Array.from(document.getElementById('scopesSelect').selectedOptions).map(opt => opt.value);
+
+  if (selectedScopes.length === 0) {
+    alert('Select at least one scope');
+    return;
+  }
+
+  const payload = {
+    applicationId: parseInt(applicationId),
+    roleName: roleName,
+    resources: [
+      {
+        resourceId: parseInt(resourceId),
+        scopeNames: selectedScopes
+      }
+    ]
+  };
+
+  fetch('/api/roles', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).then(res => {
+    if (res.ok) {
+      alert('Role created successfully!');
+    } else {
+      res.text().then(txt => alert('Error: ' + txt));
+    }
+  });
+}
+</script>
+
+</body>
+</html>
+
+public interface ApplicationRepository extends JpaRepository<Application, Long> {}
+
+// ResourceRepository
+public interface ResourceRepository extends JpaRepository<Resource, Long> {}
+
+// ScopeRepository
+public interface ScopeRepository extends JpaRepository<Scope, Long> {}
+
+// RoleRepository
+public interface RoleRepository extends JpaRepository<Role, Long> {}
+
+// RoleResourceScopeRepository
+public interface RoleResourceScopeRepository extends JpaRepository<RoleResourceScope, Long> {}
+
+@RequestMapping("/api/applications")
+public class ApplicationController {
+
+    private final ApplicationRepository applicationRepository;
+
+    public ApplicationController(ApplicationRepository applicationRepository) {
+        this.applicationRepository = applicationRepository;
+    }
+
+    // GET /api/applications
+    @GetMapping
+    public List<Application> getAllApplications() {
+        return applicationRepository.findAll();
+    }
+
+    // GET /api/applications/{id}
+    @GetMapping("/{id}")
+    public ResponseEntity<Application> getApplication(@PathVariable Long id) {
+        return applicationRepository.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+}
+
+@RequestMapping("/api/resources")
+public class ResourceController {
+
+    private final ResourceRepository resourceRepository;
+
+    public ResourceController(ResourceRepository resourceRepository) {
+        this.resourceRepository = resourceRepository;
+    }
+
+    // GET /api/resources/{id}
+    @GetMapping("/{id}")
+    public ResponseEntity<Resource> getResource(@PathVariable Long id) {
+        return resourceRepository.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+}
+
+@RequestMapping("/api/roles")
+public class RoleController {
+
+    private final RoleRepository roleRepository;
+    private final ApplicationRepository applicationRepository;
+    private final ResourceRepository resourceRepository;
+    private final ScopeRepository scopeRepository;
+    private final RoleResourceScopeRepository roleResourceScopeRepository;
+
+    public RoleController(RoleRepository roleRepository,
+                          ApplicationRepository applicationRepository,
+                          ResourceRepository resourceRepository,
+                          ScopeRepository scopeRepository,
+                          RoleResourceScopeRepository roleResourceScopeRepository) {
+        this.roleRepository = roleRepository;
+        this.applicationRepository = applicationRepository;
+        this.resourceRepository = resourceRepository;
+        this.scopeRepository = scopeRepository;
+        this.roleResourceScopeRepository = roleResourceScopeRepository;
+    }
+
+    // POST /api/roles
+    @PostMapping
+    public ResponseEntity<?> createRole(@RequestBody CreateRoleRequest request) {
+        // Validate application
+        Application app = applicationRepository.findById(request.getApplicationId())
+                .orElseThrow(() -> new RuntimeException("Application not found"));
+
+        // Create Role
+        Role role = new Role();
+        role.setName(request.getRoleName());
+        role.setApplication(app);
+        role = roleRepository.save(role);
+
+        // Save resource-scope associations
+        for (ResourceScopeData rsData : request.getResources()) {
+            Resource resource = resourceRepository.findById(rsData.getResourceId())
+                    .orElseThrow(() -> new RuntimeException("Resource not found"));
+
+            for (String scopeName : rsData.getScopeNames()) {
+                Scope scope = scopeRepository.findAll().stream()
+                        .filter(s -> s.getName().equals(scopeName))
+                        .findFirst()
+                        .orElseThrow(() -> new RuntimeException("Scope not found: " + scopeName));
+
+                RoleResourceScope rrs = new RoleResourceScope();
+                rrs.setRole(role);
+                rrs.setResource(resource);
+                rrs.setScope(scope);
+                roleResourceScopeRepository.save(rrs);
+            }
+        }
+
+        return ResponseEntity.ok("Role created successfully");
+    }
+
+    // DTO classes for request
+    public static class CreateRoleRequest {
+        private Long applicationId;
+        private String roleName;
+        private List<ResourceScopeData> resources;
+
+        // getters/setters
+        public Long getApplicationId() { return applicationId; }
+        public void setApplicationId(Long applicationId) { this.applicationId = applicationId; }
+
+        public String getRoleName() { return roleName; }
+        public void setRoleName(String roleName) { this.roleName = roleName; }
+
+        public List<ResourceScopeData> getResources() { return resources; }
+        public void setResources(List<ResourceScopeData> resources) { this.resources = resources; }
+    }
+
+    public static class ResourceScopeData {
+        private Long resourceId;
+        private List<String> scopeNames;
+
+        // getters/setters
+        public Long getResourceId() { return resourceId; }
+        public void setResourceId(Long resourceId) { this.resourceId = resourceId; }
+
+        public List<String> getScopeNames() { return scopeNames; }
+        public void setScopeNames(List<String> scopeNames) { this.scopeNames = scopeNames; }
+    }
+}
