@@ -1,0 +1,223 @@
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Create Role for Application</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; }
+  label, select, input { display: block; margin-top: 10px; }
+  button { margin-top: 20px; }
+  #resourcesContainer { margin-top: 20px; }
+  .resource-section { border: 1px solid #ccc; padding: 10px; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<h1>Create Role for Application</h1>
+
+<!-- Select Application -->
+<label for="applicationSelect">Select Application:</label>
+<select id="applicationSelect"></select>
+
+<!-- Role Name -->
+<label for="roleName">Role Name:</label>
+<input type="text" id="roleName" placeholder="Enter role name" />
+
+<!-- Resources and Scopes -->
+<div id="resourcesContainer" style="display:none;">
+  <h3>Select Resources and Scopes</h3>
+  <div id="resourcesList"></div>
+</div>
+
+<!-- Submit Button -->
+<button onclick="createRole()">Create Role</button>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  loadApplications();
+});
+
+// Load all applications
+function loadApplications() {
+  fetch('/api/applications') // Your API endpoint for applications
+    .then(res => res.json())
+    .then(apps => {
+      const select = document.getElementById('applicationSelect');
+      select.innerHTML = '';
+      apps.forEach(app => {
+        const opt = document.createElement('option');
+        opt.value = app.id;
+        opt.text = app.name;
+        select.appendChild(opt);
+      });
+      // Load resources for first application
+      loadResourcesForApplication(select.value);
+      select.addEventListener('change', () => {
+        loadResourcesForApplication(select.value);
+      });
+    });
+}
+
+// Load resources for selected application
+function loadResourcesForApplication(appId) {
+  fetch(`/api/applications/${appId}`) // Your API should return application with resources
+    .then(res => res.json())
+    .then(app => {
+      document.getElementById('resourcesContainer').style.display = 'block';
+      const container = document.getElementById('resourcesList');
+      container.innerHTML = '';
+
+      if (app.resources && app.resources.length > 0) {
+        app.resources.forEach(resource => {
+          // Create a resource section
+          const div = document.createElement('div');
+          div.className = 'resource-section';
+
+          // Checkbox for resource selection
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.id = `res_${resource.id}`;
+          checkbox.dataset.resourceId = resource.id;
+
+          // Label for resource
+          const label = document.createElement('label');
+          label.htmlFor = `res_${resource.id}`;
+          label.innerText = ` ${resource.name} (Type: ${resource.resourceType})`;
+
+          // Container for scopes
+          const scopesDiv = document.createElement('div');
+          scopesDiv.id = `scopes_div_${resource.id}`;
+          scopesDiv.style.display = 'none'; // hidden until resource is selected
+
+          // Append checkbox and label
+          div.appendChild(checkbox);
+          div.appendChild(label);
+          div.appendChild(scopesDiv);
+          container.appendChild(div);
+
+          // Event listener for checkbox to load scopes
+          checkbox.addEventListener('change', () => {
+            if (checkbox.checked) {
+              loadScopesForResource(resource.id, resource);
+            } else {
+              document.getElementById(`scopes_div_${resource.id}`).style.display = 'none';
+              document.getElementById(`scopes_div_${resource.id}`).innerHTML = '';
+            }
+          });
+        });
+      } else {
+        container.innerHTML = '<p>No resources for this application.</p>';
+      }
+    });
+}
+
+// Load scopes for a resource
+function loadScopesForResource(resourceId, resource) {
+  // Assuming resource object has scopes (if not, fetch from API)
+  // Here, we assume API returns resource with scopes
+  // Alternatively, you can fetch resource by ID if needed
+  // For simplicity, we assume the resource object passed has scopes
+
+  // Create scopes checkboxes
+  const scopesDiv = document.getElementById(`scopes_div_${resourceId}`);
+  scopesDiv.innerHTML = '';
+  scopesDiv.style.display = 'block';
+
+  if (resource.scopes && resource.scopes.length > 0) {
+    resource.scopes.forEach(scope => {
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.value = scope.name;
+      checkbox.id = `scope_${resourceId}_${scope.name}`;
+
+      const label = document.createElement('label');
+      label.htmlFor = `scope_${resourceId}_${scope.name}`;
+      label.innerText = ` ${scope.name}`;
+
+      scopesDiv.appendChild(checkbox);
+      scopesDiv.appendChild(label);
+      scopesDiv.appendChild(document.createElement('br'));
+    });
+  } else {
+    scopesDiv.innerHTML = '<p>No scopes for this resource.</p>';
+  }
+}
+
+// Create role with selected resources and scopes
+function createRole() {
+  const roleName = document.getElementById('roleName').value.trim();
+  if (!roleName) {
+    alert('Enter a role name');
+    return;
+  }
+
+  const applicationId = document.getElementById('applicationSelect').value;
+
+  const selections = [];
+  document.querySelectorAll('.resource-section').forEach(sec => {
+    const checkbox = sec.querySelector('input[type=checkbox]');
+    if (checkbox.checked) {
+      const resourceId = checkbox.dataset.resourceId;
+      const scopes = Array.from(sec.querySelectorAll(`input[type=checkbox][id^=scope_${resourceId}_]`))
+        .filter(cb => cb.checked)
+        .map(cb => cb.value);
+      selections.push({ resourceId: parseInt(resourceId), scopeNames: scopes });
+    }
+  });
+
+  if (selections.length === 0) {
+    alert('Select at least one resource and its scopes');
+    return;
+  }
+
+  const payload = {
+    applicationId: parseInt(applicationId),
+    roleName: roleName,
+    resources: selections
+  };
+
+  fetch('/api/roles', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).then(res => {
+    if (res.ok) {
+      alert('Role created successfully!');
+    } else {
+      res.text().then(txt => alert('Error: ' + txt));
+    }
+  });
+}
+</script>
+
+</body>
+</html>
+
+import com.example.entity.Application;
+import com.example.repository.ApplicationRepository;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/applications")
+public class ApplicationController {
+
+    private final ApplicationRepository applicationRepository;
+
+    public ApplicationController(ApplicationRepository applicationRepository) {
+        this.applicationRepository = applicationRepository;
+    }
+
+    // Get application with resources, resource types, and scopes
+    @GetMapping("/{id}")
+    public ResponseEntity<Application> getApplication(@PathVariable Long id) {
+        return applicationRepository.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+}
+
+import com.example.entity.Application;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ApplicationRepository extends JpaRepository<Application, Long> {
+}
