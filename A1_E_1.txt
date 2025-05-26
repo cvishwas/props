@@ -1,0 +1,194 @@
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class EntitlementsApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(EntitlementsApplication.class, args);
+    }
+}
+
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "ORGANIZATIONS")
+public class Organization {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "ORG_KEY")
+    private Long orgKey;
+
+    @Column(name = "ORG_NAME", length = 255)
+    private String orgName;
+
+    @Column(name = "ORG_DESC", length = 1000)
+    private String orgDesc;
+
+    @Column(name = "ACTIVE_FLAG", length = 1)
+    private String activeFlag = "Y";
+
+    @Column(name = "INSERT_TSP")
+    private LocalDateTime insertTsp;
+
+    @Column(name = "INSERT_USER_ID", length = 255)
+    private String insertUserId;
+
+    @Column(name = "LAST_UPDATE_TSP")
+    private LocalDateTime lastUpdateTsp;
+
+    @Column(name = "LAST_UPDATE_USER_ID", length = 255)
+    private String lastUpdateUserId;
+
+    // Getters and Setters
+
+    public Long getOrgKey() {
+        return orgKey;
+    }
+
+    public void setOrgKey(Long orgKey) {
+        this.orgKey = orgKey;
+    }
+
+    public String getOrgName() {
+        return orgName;
+    }
+
+    public void setOrgName(String orgName) {
+        this.orgName = orgName;
+    }
+
+    public String getOrgDesc() {
+        return orgDesc;
+    }
+
+    public void setOrgDesc(String orgDesc) {
+        this.orgDesc = orgDesc;
+    }
+
+    public String getActiveFlag() {
+        return activeFlag;
+    }
+
+    public void setActiveFlag(String activeFlag) {
+        this.activeFlag = activeFlag;
+    }
+
+    public LocalDateTime getInsertTsp() {
+        return insertTsp;
+    }
+
+    public void setInsertTsp(LocalDateTime insertTsp) {
+        this.insertTsp = insertTsp;
+    }
+
+    public String getInsertUserId() {
+        return insertUserId;
+    }
+
+    public void setInsertUserId(String insertUserId) {
+        this.insertUserId = insertUserId;
+    }
+
+    public LocalDateTime getLastUpdateTsp() {
+        return lastUpdateTsp;
+    }
+
+    public void setLastUpdateTsp(LocalDateTime lastUpdateTsp) {
+        this.lastUpdateTsp = lastUpdateTsp;
+    }
+
+    public String getLastUpdateUserId() {
+        return lastUpdateUserId;
+    }
+
+    public void setLastUpdateUserId(String lastUpdateUserId) {
+        this.lastUpdateUserId = lastUpdateUserId;
+    }
+}
+
+import com.example.entitlements.entity.Organization;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface OrganizationRepository extends JpaRepository<Organization, Long> {
+}
+
+import com.example.entitlements.entity.Organization;
+import com.example.entitlements.repository.OrganizationRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
+
+@RestController
+@RequestMapping("/api/organizations")
+public class OrganizationController {
+
+    @Autowired
+    private OrganizationRepository organizationRepository;
+
+    @PostMapping
+    public ResponseEntity<Organization> createOrganization(@RequestBody Organization org) {
+        // Set audit fields
+        LocalDateTime now = LocalDateTime.now();
+        org.setInsertTsp(now);
+        org.setLastUpdateTsp(now);
+        org.setInsertUserId("system"); // For demo, hardcoded
+        org.setLastUpdateUserId("system");
+        org.setActiveFlag("Y");
+
+        Organization savedOrg = organizationRepository.save(org);
+        return ResponseEntity.ok(savedOrg);
+    }
+}
+
+spring.datasource.username=<your_username>
+spring.datasource.password=<your_password>
+spring.datasource.driver-class-name=oracle.jdbc.OracleDriver
+
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.jdbc.time_zone=UTC
+
+<html>
+<head>
+    <title>Create Organization</title>
+    <script>
+        async function submitForm() {
+            const name = document.getElementById('orgName').value;
+            const desc = document.getElementById('orgDesc').value;
+
+            const response = await fetch('/api/organizations', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    orgName: name,
+                    orgDesc: desc
+                })
+            });
+
+            if (response.ok) {
+                alert('Organization created successfully!');
+            } else {
+                alert('Error creating organization.');
+            }
+        }
+    </script>
+</head>
+<body>
+    <h1>Create Organization</h1>
+    <form onsubmit="event.preventDefault(); submitForm();">
+        <label for="orgName">Organization Name:</label><br>
+        <input type="text" id="orgName" name="orgName" required><br><br>
+        <label for="orgDesc">Description:</label><br>
+        <textarea id="orgDesc" name="orgDesc" rows="4" cols="50" required></textarea><br><br>
+        <button type="submit">Save Organization</button>
+    </form>
+</body>
+</html>
