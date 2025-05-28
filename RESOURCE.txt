@@ -1,0 +1,291 @@
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "RESOURCES")
+public class Resource {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "RESOURCE_KEY")
+    private Long resourceKey;
+
+    @Column(name = "RESOURCE_NAME", length = 255)
+    private String resourceName;
+
+    @Column(name = "RESOURCE_DESC", length = 1000)
+    private String resourceDesc;
+
+    @Column(name = "RESOURCE_TYPE_KEY")
+    private Long resourceTypeKey;
+
+    @Column(name = "INSERT_TSP")
+    private LocalDateTime insertTsp;
+
+    @Column(name = "INSERT_USER_ID", length = 255)
+    private String insertUserId;
+
+    @Column(name = "LAST_UPDATE_TSP")
+    private LocalDateTime lastUpdateTsp;
+
+    @Column(name = "LAST_UPDATE_USER_ID", length = 255)
+    private String lastUpdateUserId;
+
+    // Getters and Setters
+    public Long getResourceKey() {
+        return resourceKey;
+    }
+
+    public void setResourceKey(Long resourceKey) {
+        this.resourceKey = resourceKey;
+    }
+
+    public String getResourceName() {
+        return resourceName;
+    }
+
+    public void setResourceName(String resourceName) {
+        this.resourceName = resourceName;
+    }
+
+    public String getResourceDesc() {
+        return resourceDesc;
+    }
+
+    public void setResourceDesc(String resourceDesc) {
+        this.resourceDesc = resourceDesc;
+    }
+
+    public Long getResourceTypeKey() {
+        return resourceTypeKey;
+    }
+
+    public void setResourceTypeKey(Long resourceTypeKey) {
+        this.resourceTypeKey = resourceTypeKey;
+    }
+
+    public LocalDateTime getInsertTsp() {
+        return insertTsp;
+    }
+
+    public void setInsertTsp(LocalDateTime insertTsp) {
+        this.insertTsp = insertTsp;
+    }
+
+    public String getInsertUserId() {
+        return insertUserId;
+    }
+
+    public void setInsertUserId(String insertUserId) {
+        this.insertUserId = insertUserId;
+    }
+
+    public LocalDateTime getLastUpdateTsp() {
+        return lastUpdateTsp;
+    }
+
+    public void setLastUpdateTsp(LocalDateTime lastUpdateTsp) {
+        this.lastUpdateTsp = lastUpdateTsp;
+    }
+
+    public String getLastUpdateUserId() {
+        return lastUpdateUserId;
+    }
+
+    public void setLastUpdateUserId(String lastUpdateUserId) {
+        this.lastUpdateUserId = lastUpdateUserId;
+    }
+}
+
+import com.example.entitlements.entity.Resource;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface ResourceRepository extends JpaRepository<Resource, Long> {
+    List<Resource> findByResourceName(String resourceName);
+}
+
+import com.example.entitlements.entity.Resource;
+import com.example.entitlements.repository.ResourceRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class ResourceService {
+
+    @Autowired
+    private ResourceRepository resourceRepository;
+
+    public Resource createResource(Resource resource) {
+        // Set audit fields
+        resource.setInsertTsp(java.time.LocalDateTime.now());
+        resource.setLastUpdateTsp(java.time.LocalDateTime.now());
+        resource.setInsertUserId("system");
+        resource.setLastUpdateUserId("system");
+        return resourceRepository.save(resource);
+    }
+
+    public List<Resource> getAllResources() {
+        return resourceRepository.findAll();
+    }
+
+    public List<Resource> getResourcesByName(String name) {
+        return resourceRepository.findByResourceName(name);
+    }
+
+    public Resource getResourceById(Long id) {
+        return resourceRepository.findById(id).orElse(null);
+    }
+}
+
+import com.example.entitlements.entity.Resource;
+import com.example.entitlements.service.ResourceService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/resources")
+public class ResourceController {
+
+    @Autowired
+    private ResourceService resourceService;
+
+    @PostMapping
+    public ResponseEntity<Resource> createResource(@RequestBody Resource resource) {
+        Resource created = resourceService.createResource(resource);
+        return ResponseEntity.ok(created);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<Resource>> getAllResources() {
+        return ResponseEntity.ok(resourceService.getAllResources());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Resource> getResourceById(@PathVariable Long id) {
+        Resource resource = resourceService.getResourceById(id);
+        if (resource != null) {
+            return ResponseEntity.ok(resource);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<Resource>> getResourcesByName(@RequestParam String name) {
+        return ResponseEntity.ok(resourceService.getResourcesByName(name));
+    }
+}
+
+<html>
+<head>
+    <title>Resources Management</title>
+    <script>
+        async function saveResource() {
+            const name = document.getElementById('resourceName').value;
+            const desc = document.getElementById('resourceDesc').value;
+            const typeKey = document.getElementById('resourceTypeKey').value;
+
+            const response = await fetch('/api/resources', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    resourceName: name,
+                    resourceDesc: desc,
+                    resourceTypeKey: parseInt(typeKey)
+                })
+            });
+
+            if (response.ok) {
+                alert('Resource created successfully!');
+                loadResources();
+                document.getElementById('resourceForm').reset();
+            } else {
+                alert('Error creating resource.');
+            }
+        }
+
+        async function loadResources() {
+            const response = await fetch('/api/resources');
+            const resources = await response.json();
+
+            const listDiv = document.getElementById('resourceList');
+            listDiv.innerHTML = '';
+
+            if (resources.length === 0) {
+                listDiv.innerHTML = '<p>No resources found.</p>';
+                return;
+            }
+
+            const table = document.createElement('table');
+            table.border = '1';
+
+            // Table headers
+            const headerRow = document.createElement('tr');
+            ['Resource Key', 'Name', 'Description', 'Type Key'].forEach(text => {
+                const th = document.createElement('th');
+                th.innerText = text;
+                headerRow.appendChild(th);
+            });
+            table.appendChild(headerRow);
+
+            // Table rows
+            resources.forEach(res => {
+                const row = document.createElement('tr');
+
+                const keyCell = document.createElement('td');
+                keyCell.innerText = res.resourceKey;
+                row.appendChild(keyCell);
+
+                const nameCell = document.createElement('td');
+                nameCell.innerText = res.resourceName;
+                row.appendChild(nameCell);
+
+                const descCell = document.createElement('td');
+                descCell.innerText = res.resourceDesc;
+                row.appendChild(descCell);
+
+                const typeKeyCell = document.createElement('td');
+                typeKeyCell.innerText = res.resourceTypeKey;
+                row.appendChild(typeKeyCell);
+
+                table.appendChild(row);
+            });
+
+            listDiv.appendChild(table);
+        }
+
+        window.onload = () => {
+            loadResources();
+        }
+    </script>
+</head>
+<body>
+    <h1>Resource Management</h1>
+    <form id="resourceForm" onsubmit="event.preventDefault(); saveResource();">
+        <label for="resourceName">Resource Name:</label><br>
+        <input type="text" id="resourceName" required><br><br>
+
+        <label for="resourceDesc">Description:</label><br>
+        <textarea id="resourceDesc" rows="4" cols="50" required></textarea><br><br>
+
+        <label for="resourceTypeKey">Resource Type Key:</label><br>
+        <input type="number" id="resourceTypeKey" required><br><br>
+
+        <button type="submit">Save Resource</button>
+    </form>
+
+    <h2>Existing Resources</h2>
+    <div id="resourceList"></div>
+</body>
+</html>
