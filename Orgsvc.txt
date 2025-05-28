@@ -1,0 +1,44 @@
+import com.example.entitlements.entity.Organization;
+import com.example.entitlements.repository.OrganizationRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+
+@Service
+public class OrganizationService {
+
+    @Autowired
+    private OrganizationRepository organizationRepository;
+
+    public Organization createOrganization(Organization organization) {
+        // Set audit fields
+        LocalDateTime now = LocalDateTime.now();
+        organization.setInsertTsp(now);
+        organization.setLastUpdateTsp(now);
+        organization.setInsertUserId("system");
+        organization.setLastUpdateUserId("system");
+        organization.setActiveFlag("Y");
+        return organizationRepository.save(organization);
+    }
+}
+
+import com.example.entitlements.entity.Organization;
+import com.example.entitlements.service.OrganizationService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/organizations")
+public class OrganizationController {
+
+    @Autowired
+    private OrganizationService organizationService;
+
+    @PostMapping
+    public ResponseEntity<Organization> createOrganization(@RequestBody Organization organization) {
+        Organization created = organizationService.createOrganization(organization);
+        return ResponseEntity.ok(created);
+    }
+}
