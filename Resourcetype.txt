@@ -1,0 +1,261 @@
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "RESOURCE_TYPES")
+public class ResourceType {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "RESOURCE_TYPE_KEY")
+    private Long resourceTypeKey;
+
+    @Column(name = "RESOURCE_TYPE_NAME", length = 255)
+    private String resourceTypeName;
+
+    @Column(name = "RESOURCE_TYPE_DESC", length = 1000)
+    private String resourceTypeDesc;
+
+    @Column(name = "ACTIVE_FLAG", length = 1)
+    private String activeFlag = "Y";
+
+    @Column(name = "INSERT_TSP")
+    private LocalDateTime insertTsp;
+
+    @Column(name = "INSERT_USER_ID", length = 255)
+    private String insertUserId;
+
+    @Column(name = "LAST_UPDATE_TSP")
+    private LocalDateTime lastUpdateTsp;
+
+    @Column(name = "LAST_UPDATE_USER_ID", length = 255)
+    private String lastUpdateUserId;
+
+    // Getters and Setters
+    public Long getResourceTypeKey() {
+        return resourceTypeKey;
+    }
+
+    public void setResourceTypeKey(Long resourceTypeKey) {
+        this.resourceTypeKey = resourceTypeKey;
+    }
+
+    public String getResourceTypeName() {
+        return resourceTypeName;
+    }
+
+    public void setResourceTypeName(String resourceTypeName) {
+        this.resourceTypeName = resourceTypeName;
+    }
+
+    public String getResourceTypeDesc() {
+        return resourceTypeDesc;
+    }
+
+    public void setResourceTypeDesc(String resourceTypeDesc) {
+        this.resourceTypeDesc = resourceTypeDesc;
+    }
+
+    public String getActiveFlag() {
+        return activeFlag;
+    }
+
+    public void setActiveFlag(String activeFlag) {
+        this.activeFlag = activeFlag;
+    }
+
+    public LocalDateTime getInsertTsp() {
+        return insertTsp;
+    }
+
+    public void setInsertTsp(LocalDateTime insertTsp) {
+        this.insertTsp = insertTsp;
+    }
+
+    public String getInsertUserId() {
+        return insertUserId;
+    }
+
+    public void setInsertUserId(String insertUserId) {
+        this.insertUserId = insertUserId;
+    }
+
+    public LocalDateTime getLastUpdateTsp() {
+        return lastUpdateTsp;
+    }
+
+    public void setLastUpdateTsp(LocalDateTime lastUpdateTsp) {
+        this.lastUpdateTsp = lastUpdateTsp;
+    }
+
+    public String getLastUpdateUserId() {
+        return lastUpdateUserId;
+    }
+
+    public void setLastUpdateUserId(String lastUpdateUserId) {
+        this.lastUpdateUserId = lastUpdateUserId;
+    }
+}
+
+import com.example.entitlements.entity.ResourceType;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface ResourceTypeRepository extends JpaRepository<ResourceType, Long> {
+}
+
+import com.example.entitlements.entity.ResourceType;
+import com.example.entitlements.repository.ResourceTypeRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class ResourceTypeService {
+
+    @Autowired
+    private ResourceTypeRepository resourceTypeRepository;
+
+    public ResourceType saveResourceType(ResourceType resourceType) {
+        // Set audit fields
+        resourceType.setInsertTsp(java.time.LocalDateTime.now());
+        resourceType.setLastUpdateTsp(java.time.LocalDateTime.now());
+        resourceType.setInsertUserId("system");
+        resourceType.setLastUpdateUserId("system");
+        resourceType.setActiveFlag("Y");
+        return resourceTypeRepository.save(resourceType);
+    }
+
+    public List<ResourceType> getAllResourceTypes() {
+        return resourceTypeRepository.findAll();
+    }
+}
+
+import com.example.entitlements.entity.ResourceType;
+import com.example.entitlements.service.ResourceTypeService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/resource-types")
+public class ResourceTypeController {
+
+    @Autowired
+    private ResourceTypeService resourceTypeService;
+
+    @PostMapping
+    public ResponseEntity<ResourceType> createResourceType(@RequestBody ResourceType resourceType) {
+        ResourceType saved = resourceTypeService.saveResourceType(resourceType);
+        return ResponseEntity.ok(saved);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<ResourceType>> getAllResourceTypes() {
+        return ResponseEntity.ok(resourceTypeService.getAllResourceTypes());
+    }
+}
+
+<html>
+<head>
+    <title>Resource Types Management</title>
+    <script>
+        async function saveResourceType() {
+            const name = document.getElementById('resourceTypeName').value;
+            const desc = document.getElementById('resourceTypeDesc').value;
+
+            const response = await fetch('/api/resource-types', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    resourceTypeName: name,
+                    resourceTypeDesc: desc
+                })
+            });
+
+            if (response.ok) {
+                alert('Resource Type saved successfully!');
+                loadResourceTypes(); // refresh list
+                document.getElementById('resourceTypeForm').reset();
+            } else {
+                alert('Error saving resource type.');
+            }
+        }
+
+        async function loadResourceTypes() {
+            const response = await fetch('/api/resource-types');
+            const resourceTypes = await response.json();
+
+            const listDiv = document.getElementById('resourceTypeList');
+            listDiv.innerHTML = '';
+
+            if (resourceTypes.length === 0) {
+                listDiv.innerHTML = '<p>No resource types found.</p>';
+                return;
+            }
+
+            const table = document.createElement('table');
+            table.border = '1';
+
+            // Table headers
+            const headerRow = document.createElement('tr');
+            ['Resource Type Key', 'Name', 'Description', 'Active Flag'].forEach(text => {
+                const th = document.createElement('th');
+                th.innerText = text;
+                headerRow.appendChild(th);
+            });
+            table.appendChild(headerRow);
+
+            // Table rows
+            resourceTypes.forEach(rt => {
+                const row = document.createElement('tr');
+
+                const keyCell = document.createElement('td');
+                keyCell.innerText = rt.resourceTypeKey;
+                row.appendChild(keyCell);
+
+                const nameCell = document.createElement('td');
+                nameCell.innerText = rt.resourceTypeName;
+                row.appendChild(nameCell);
+
+                const descCell = document.createElement('td');
+                descCell.innerText = rt.resourceTypeDesc;
+                row.appendChild(descCell);
+
+                const activeCell = document.createElement('td');
+                activeCell.innerText = rt.activeFlag;
+                row.appendChild(activeCell);
+
+                table.appendChild(row);
+            });
+
+            listDiv.appendChild(table);
+        }
+
+        window.onload = () => {
+            loadResourceTypes();
+        }
+    </script>
+</head>
+<body>
+    <h1>Resource Types Management</h1>
+    <form id="resourceTypeForm" onsubmit="event.preventDefault(); saveResourceType();">
+        <label for="resourceTypeName">Resource Type Name:</label><br>
+        <input type="text" id="resourceTypeName" required><br><br>
+
+        <label for="resourceTypeDesc">Description:</label><br>
+        <textarea id="resourceTypeDesc" rows="4" cols="50" required></textarea><br><br>
+
+        <button type="submit">Save Resource Type</button>
+    </form>
+
+    <h2>Existing Resource Types</h2>
+    <div id="resourceTypeList"></div>
+</body>
+</html>
