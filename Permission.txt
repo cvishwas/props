@@ -1,0 +1,328 @@
+@Table(name = "PERMISSIONS")
+public class Permission {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "PERMISSION_KEY")
+    private Long permissionKey;
+    @Column(name = "PERMISSION_NAME", length = 255)
+    private String permissionName;
+    @Column(name = "PERMISSION_DESC", length = 1000)
+    private String permissionDesc;
+    @Column(name = "INSERT_TSP")
+    private LocalDateTime insertTsp;
+    @Column(name = "INSERT_USER_ID", length = 255)
+    private String insertUserId;
+    @Column(name = "LAST_UPDATE_TSP")
+    private LocalDateTime lastUpdateTsp;
+    @Column(name = "LAST_UPDATE_USER_ID", length = 255)
+    private String lastUpdateUserId;
+    // getters/setters
+}
+
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "RESOURCE_PERMISSIONS")
+public class ResourcePermission {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "RESOURCE_PERMISSION_KEY")
+    private Long resourcePermissionKey;
+
+    @Column(name = "RESOURCE_KEY")
+    private Long resourceKey;
+
+    @Column(name = "PERMISSION_KEY")
+    private Long permissionKey;
+
+    @Column(name = "ACTIVE_FLAG", length = 1)
+    private String activeFlag = "Y";
+
+    @Column(name = "INSERT_TSP")
+    private LocalDateTime insertTsp;
+
+    @Column(name = "INSERT_USER_ID", length = 255)
+    private String insertUserId;
+
+    @Column(name = "LAST_UPDATE_TSP")
+    private LocalDateTime lastUpdateTsp;
+
+    @Column(name = "LAST_UPDATE_USER_ID", length = 255)
+    private String lastUpdateUserId;
+
+    // Getters and Setters
+    public Long getResourcePermissionKey() {
+        return resourcePermissionKey;
+    }
+
+    public void setResourcePermissionKey(Long resourcePermissionKey) {
+        this.resourcePermissionKey = resourcePermissionKey;
+    }
+
+    public Long getResourceKey() {
+        return resourceKey;
+    }
+
+    public void setResourceKey(Long resourceKey) {
+        this.resourceKey = resourceKey;
+    }
+
+    public Long getPermissionKey() {
+        return permissionKey;
+    }
+
+    public void setPermissionKey(Long permissionKey) {
+        this.permissionKey = permissionKey;
+    }
+
+    public String getActiveFlag() {
+        return activeFlag;
+    }
+
+    public void setActiveFlag(String activeFlag) {
+        this.activeFlag = activeFlag;
+    }
+
+    public LocalDateTime getInsertTsp() {
+        return insertTsp;
+    }
+
+    public void setInsertTsp(LocalDateTime insertTsp) {
+        this.insertTsp = insertTsp;
+    }
+
+    public String getInsertUserId() {
+        return insertUserId;
+    }
+
+    public void setInsertUserId(String insertUserId) {
+        this.insertUserId = insertUserId;
+    }
+
+    public LocalDateTime getLastUpdateTsp() {
+        return lastUpdateTsp;
+    }
+
+    public void setLastUpdateTsp(LocalDateTime lastUpdateTsp) {
+        this.lastUpdateTsp = lastUpdateTsp;
+    }
+
+    public String getLastUpdateUserId() {
+        return lastUpdateUserId;
+    }
+
+    public void setLastUpdateUserId(String lastUpdateUserId) {
+        this.lastUpdateUserId = lastUpdateUserId;
+    }
+}
+
+public interface ResourceRepository extends JpaRepository<Resource, Long> {}
+public interface ResourcePermissionRepository extends JpaRepository<ResourcePermission, Long> {}
+
+public class PermissionService {
+    @Autowired
+    private PermissionRepository permissionRepository;
+
+    public Permission createPermission(Permission permission) {
+        permission.setInsertTsp(LocalDateTime.now());
+        permission.setLastUpdateTsp(LocalDateTime.now());
+        permission.setInsertUserId("system");
+        permission.setLastUpdateUserId("system");
+        return permissionRepository.save(permission);
+    }
+
+    public List<Permission> getAllPermissions() {
+        return permissionRepository.findAll();
+    }
+}
+
+public class ResourceService {
+    @Autowired
+    private ResourceRepository resourceRepository;
+    @Autowired
+    private ResourcePermissionRepository resourcePermissionRepository;
+
+    public Resource createResource(Resource resource) {
+        // set audit fields
+    }
+
+    public List<Resource> getAllResources() {
+        return resourceRepository.findAll();
+    }
+
+    public void associatePermissions(Long resourceId, List<Long> permissionIds) {
+        Resource resource = resourceRepository.findById(resourceId).orElseThrow();
+        for (Long permissionId : permissionIds) {
+            ResourcePermission rp = new ResourcePermission();
+            rp.setResourceKey(resource.getResourceKey());
+            rp.setPermissionKey(permissionId);
+            // set audit fields
+            resourcePermissionRepository.save(rp);
+        }
+    }
+}
+
+@RequestMapping("/api/permissions")
+public class PermissionController {
+    @Autowired
+    private PermissionService permissionService;
+
+    @PostMapping
+    public ResponseEntity<Permission> createPermission(@RequestBody Permission permission) {
+        return ResponseEntity.ok(permissionService.createPermission(permission));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<Permission>> getAllPermissions() {
+        return ResponseEntity.ok(permissionService.getAllPermissions());
+    }
+}
+
+@RequestMapping("/api/resources")
+public class ResourceController {
+    @Autowired
+    private ResourceService resourceService;
+
+    @PostMapping
+    public ResponseEntity<Resource> createResource(@RequestBody Resource resource) {
+        // create resource
+    }
+
+    @GetMapping
+    public ResponseEntity<List<Resource>> getAllResources() {
+        return ResponseEntity.ok(resourceService.getAllResources());
+    }
+
+    @PostMapping("/{id}/permissions")
+    public ResponseEntity<Void> associatePermissions(@PathVariable Long id, @RequestBody List<Long> permissionIds) {
+        resourceService.associatePermissions(id, permissionIds);
+        return ResponseEntity.ok().build();
+    }
+}
+
+<html>
+<head>
+    <title>Create Permission</title>
+    <script>
+        async function createPermission() {
+            const name = document.getElementById('permissionName').value;
+            const desc = document.getElementById('permissionDesc').value;
+            const response = await fetch('/api/permissions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ permissionName: name, permissionDesc: desc })
+            });
+            if (response.ok) {
+                alert('Permission created!');
+                document.getElementById('permissionForm').reset();
+                loadPermissions();
+            } else {
+                alert('Error creating permission.');
+            }
+        }
+
+        async function loadPermissions() {
+            const response = await fetch('/api/permissions');
+            const permissions = await response.json();
+            const listDiv = document.getElementById('permissionList');
+            listDiv.innerHTML = '';
+            if (permissions.length === 0) {
+                listDiv.innerHTML = '<p>No permissions found.</p>';
+                return;
+            }
+            const table = document.createElement('table');
+            table.border = '1';
+            const header = document.createElement('tr');
+            ['ID', 'Name', 'Description'].forEach(text => {
+                const th = document.createElement('th');
+                th.innerText = text;
+                header.appendChild(th);
+            });
+            table.appendChild(header);
+            permissions.forEach(p => {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${p.permissionKey}</td><td>${p.permissionName}</td><td>${p.permissionDesc}</td>`;
+                table.appendChild(row);
+            });
+            listDiv.appendChild(table);
+        }
+
+        window.onload = loadPermissions;
+    </script>
+</head>
+<body>
+    <h1>Create Permission</h1>
+    <form id="permissionForm" onsubmit="event.preventDefault(); createPermission();">
+        <label>Name:</label><br>
+        <input type="text" id="permissionName" required><br><br>
+        <label>Description:</label><br>
+        <textarea id="permissionDesc" rows="4" cols="50" required></textarea><br><br>
+        <button type="submit">Create Permission</button>
+    </form>
+
+    <h2>Existing Permissions</h2>
+    <div id="permissionList"></div>
+</body>
+</html>
+
+<html>
+<head>
+    <title>Associate Permissions to Resource</title>
+    <script>
+        async function loadResources() {
+            const response = await fetch('/api/resources');
+            const resources = await response.json();
+            const select = document.getElementById('resourceSelect');
+            resources.forEach(r => {
+                const option = document.createElement('option');
+                option.value = r.resourceKey;
+                option.text = r.resourceName;
+                select.add(option);
+            });
+        }
+
+        async function loadPermissions() {
+            const response = await fetch('/api/permissions');
+            const permissions = await response.json();
+            const container = document.getElementById('permissionsContainer');
+            container.innerHTML = '';
+            permissions.forEach(p => {
+                const label = document.createElement('label');
+                label.innerHTML = `<input type="checkbox" value="${p.permissionKey}"> ${p.permissionName}<br>`;
+                container.appendChild(label);
+            });
+        }
+
+        async function saveAssociations() {
+            const resourceId = document.getElementById('resourceSelect').value;
+            const checkboxes = document.querySelectorAll('#permissionsContainer input[type=checkbox]:checked');
+            const permissionIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+            const response = await fetch(`/api/resources/${resourceId}/permissions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(permissionIds)
+            });
+            if (response.ok) {
+                alert('Permissions associated successfully!');
+            } else {
+                alert('Error associating permissions.');
+            }
+        }
+
+        window.onload = () => {
+            loadResources();
+            loadPermissions();
+        };
+    </script>
+</head>
+<body>
+    <h1>Associate Permissions to Resource</h1>
+    <label>Select Resource:</label>
+    <select id="resourceSelect"></select><br><br>
+    <h2>Select Permissions:</h2>
+    <div id="permissionsContainer"></div>
+    <button onclick="saveAssociations()">Save Associations</button>
+</body>
+</html>
