@@ -1,0 +1,437 @@
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "USERS")
+public class User {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "USER_KEY")
+    private Long userKey;
+
+    @Column(name = "FIRST_NAME", length = 255)
+    private String firstName;
+
+    @Column(name = "LAST_NAME", length = 255)
+    private String lastName;
+
+    @Column(name = "EMAIL", length = 255)
+    private String email;
+
+    @Column(name = "PHONE", length = 15)
+    private String phone;
+
+    @Column(name = "USER_TZABBREV", length = 64)
+    private String userTzAbbrev;
+
+    @Column(name = "EXTERNAL_USER_FLAG", length = 1)
+    private String externalUserFlag;
+
+    @Column(name = "USER_LOGIN_ID", length = 255)
+    private String userLoginId;
+
+    @Column(name = "ACTIVE_FLAG", length = 1)
+    private String activeFlag = "Y";
+
+    @Column(name = "INSERT_TSP")
+    private LocalDateTime insertTsp;
+
+    @Column(name = "INSERT_USER_ID", length = 255)
+    private String insertUserId;
+
+    @Column(name = "LAST_UPDATE_TSP")
+    private LocalDateTime lastUpdateTsp;
+
+    @Column(name = "LAST_UPDATE_USER_ID", length = 255)
+    private String lastUpdateUserId;
+
+    // Getters and Setters
+    public Long getUserKey() {
+        return userKey;
+    }
+
+    public void setUserKey(Long userKey) {
+        this.userKey = userKey;
+    }
+
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public String getUserTzAbbrev() {
+        return userTzAbbrev;
+    }
+
+    public void setUserTzAbbrev(String userTzAbbrev) {
+        this.userTzAbbrev = userTzAbbrev;
+    }
+
+    public String getExternalUserFlag() {
+        return externalUserFlag;
+    }
+
+    public void setExternalUserFlag(String externalUserFlag) {
+        this.externalUserFlag = externalUserFlag;
+    }
+
+    public String getUserLoginId() {
+        return userLoginId;
+    }
+
+    public void setUserLoginId(String userLoginId) {
+        this.userLoginId = userLoginId;
+    }
+
+    public String getActiveFlag() {
+        return activeFlag;
+    }
+
+    public void setActiveFlag(String activeFlag) {
+        this.activeFlag = activeFlag;
+    }
+
+    public LocalDateTime getInsertTsp() {
+        return insertTsp;
+    }
+
+    public void setInsertTsp(LocalDateTime insertTsp) {
+        this.insertTsp = insertTsp;
+    }
+
+    public String getInsertUserId() {
+        return insertUserId;
+    }
+
+    public void setInsertUserId(String insertUserId) {
+        this.insertUserId = insertUserId;
+    }
+
+    public LocalDateTime getLastUpdateTsp() {
+        return lastUpdateTsp;
+    }
+
+    public void setLastUpdateTsp(LocalDateTime lastUpdateTsp) {
+        this.lastUpdateTsp = lastUpdateTsp;
+    }
+
+    public String getLastUpdateUserId() {
+        return lastUpdateUserId;
+    }
+
+    public void setLastUpdateUserId(String lastUpdateUserId) {
+        this.lastUpdateUserId = lastUpdateUserId;
+    }
+}
+
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "USER_ROLES")
+public class UserRole {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "USER_ROLE_KEY")
+    private Long userRoleKey;
+
+    @Column(name = "USER_KEY")
+    private Long userKey;
+
+    @Column(name = "ROLE_KEY")
+    private Long roleKey;
+
+    @Column(name = "ACTIVE_FLAG", length = 1)
+    private String activeFlag = "Y";
+
+    @Column(name = "INSERT_TSP")
+    private LocalDateTime insertTsp;
+
+    @Column(name = "INSERT_USER_ID", length = 255)
+    private String insertUserId;
+
+    @Column(name = "LAST_UPDATE_TSP")
+    private LocalDateTime lastUpdateTsp;
+
+    @Column(name = "LAST_UPDATE_USER_ID", length = 255)
+    private String lastUpdateUserId;
+
+    // Getters and Setters
+    public Long getUserRoleKey() {
+        return userRoleKey;
+    }
+
+    public void setUserRoleKey(Long userRoleKey) {
+        this.userRoleKey = userRoleKey;
+    }
+
+    public Long getUserKey() {
+        return userKey;
+    }
+
+    public void setUserKey(Long userKey) {
+        this.userKey = userKey;
+    }
+
+    public Long getRoleKey() {
+        return roleKey;
+    }
+
+    public void setRoleKey(Long roleKey) {
+        this.roleKey = roleKey;
+    }
+
+    public String getActiveFlag() {
+        return activeFlag;
+    }
+
+    public void setActiveFlag(String activeFlag) {
+        this.activeFlag = activeFlag;
+    }
+
+    public LocalDateTime getInsertTsp() {
+        return insertTsp;
+    }
+
+    public void setInsertTsp(LocalDateTime insertTsp) {
+        this.insertTsp = insertTsp;
+    }
+
+    public String getInsertUserId() {
+        return insertUserId;
+    }
+
+    public void setInsertUserId(String insertUserId) {
+        this.insertUserId = insertUserId;
+    }
+
+    public LocalDateTime getLastUpdateTsp() {
+        return lastUpdateTsp;
+    }
+
+    public void setLastUpdateTsp(LocalDateTime lastUpdateTsp) {
+        this.lastUpdateTsp = lastUpdateTsp;
+    }
+
+    public String getLastUpdateUserId() {
+        return lastUpdateUserId;
+    }
+
+    public void setLastUpdateUserId(String lastUpdateUserId) {
+        this.lastUpdateUserId = lastUpdateUserId;
+    }
+}
+
+public class UserService {
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private UserRoleRepository userRoleRepository;
+
+    public User createUser(User user) {
+        user.setInsertTsp(LocalDateTime.now());
+        user.setLastUpdateTsp(LocalDateTime.now());
+        user.setInsertUserId("system");
+        user.setLastUpdateUserId("system");
+        user.setActiveFlag("Y");
+        return userRepository.save(user);
+    }
+
+    public void assignRolesToUser(Long userId, List<Long> roleIds) {
+        for (Long roleId : roleIds) {
+            UserRole ur = new UserRole();
+            ur.setUserKey(userId);
+            ur.setRoleKey(roleId);
+            ur.setInsertTsp(LocalDateTime.now());
+            ur.setLastUpdateTsp(LocalDateTime.now());
+            ur.setInsertUserId("system");
+            ur.setLastUpdateUserId("system");
+            ur.setActiveFlag("Y");
+            userRoleRepository.save(ur);
+        }
+    }
+}
+
+@RequestMapping("/api/users")
+public class UserController {
+
+    @Autowired
+    private UserService userService;
+
+    @PostMapping
+    public ResponseEntity<User> createUser(@RequestBody User user) {
+        return ResponseEntity.ok(userService.createUser(user));
+    }
+
+    @PostMapping("/{userId}/roles")
+    public ResponseEntity<Void> assignRoles(@PathVariable Long userId, @RequestBody List<Long> roleIds) {
+        userService.assignRolesToUser(userId, roleIds);
+        return ResponseEntity.ok().build();
+    }
+}
+
+<html>
+<head>
+    <title>Create User</title>
+    <script>
+        async function createUser() {
+            const firstName = document.getElementById('firstName').value;
+            const lastName = document.getElementById('lastName').value;
+            const email = document.getElementById('email').value;
+            const phone = document.getElementById('phone').value;
+            const loginId = document.getElementById('loginId').value;
+            const tzAbbrev = document.getElementById('tzAbbrev').value;
+            const externalFlag = document.querySelector('input[name="externalFlag"]:checked').value;
+
+            const response = await fetch('/api/users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    firstName, lastName, email, phone, userLoginId: loginId, userTzAbbrev: tzAbbrev, externalUserFlag: externalFlag
+                })
+            });
+            if (response.ok) {
+                alert('User created!');
+                document.getElementById('userForm').reset();
+                loadUsers();
+            } else {
+                alert('Error creating user.');
+            }
+        }
+
+        async function loadUsers() {
+            // optional: load and display users
+        }
+    </script>
+</head>
+<body>
+    <h1>Create User</h1>
+    <form id="userForm" onsubmit="event.preventDefault(); createUser();">
+        <label>First Name:</label><br>
+        <input type="text" id="firstName" required><br><br>
+        <label>Last Name:</label><br>
+        <input type="text" id="lastName" required><br><br>
+        <label>Email:</label><br>
+        <input type="email" id="email" required><br><br>
+        <label>Phone:</label><br>
+        <input type="text" id="phone" required><br><br>
+        <label>User Login ID:</label><br>
+        <input type="text" id="loginId" required><br><br>
+        <label>User TZ Abbreviation:</label><br>
+        <input type="text" id="tzAbbrev" required><br><br>
+        <label>External User Flag:</label><br>
+        <input type="radio" name="externalFlag" value="Y" checked> Yes
+        <input type="radio" name="externalFlag" value="N"> No<br><br>
+        <button type="submit">Create User</button>
+    </form>
+</body>
+</html>
+
+<html>
+<head>
+    <title>Assign Roles to User</title>
+    <script>
+        async function loadUsers() {
+            const response = await fetch('/api/users'); // implement GET API for users
+            const users = await response.json();
+            const select = document.getElementById('userSelect');
+            users.forEach(u => {
+                const option = document.createElement('option');
+                option.value = u.userKey;
+                option.text = u.firstName + ' ' + u.lastName;
+                select.add(option);
+            });
+        }
+
+        async function loadRoles() {
+            const response = await fetch('/api/roles'); // implement GET API for roles
+            const roles = await response.json();
+            const container = document.getElementById('rolesContainer');
+            container.innerHTML = '';
+            roles.forEach(r => {
+                const label = document.createElement('label');
+                label.innerHTML = `<input type="checkbox" value="${r.roleKey}"> ${r.roleName}<br>`;
+                container.appendChild(label);
+            });
+        }
+
+        async function assignRoles() {
+            const userId = document.getElementById('userSelect').value;
+            const checkboxes = document.querySelectorAll('#rolesContainer input[type=checkbox]:checked');
+            const roleIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+            const response = await fetch(`/api/users/${userId}/roles`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(roleIds)
+            });
+            if (response.ok) {
+                alert('Roles assigned!');
+            } else {
+                alert('Error assigning roles.');
+            }
+        }
+
+        window.onload = () => {
+            loadUsers();
+            loadRoles();
+        };
+    </script>
+</head>
+<body>
+    <h1>Assign Roles to User</h1>
+    <label>Select User:</label>
+    <select id="userSelect"></select><br><br>
+    <h2>Select Roles</h2>
+    <div id="rolesContainer"></div>
+    <button onclick="assignRoles()">Assign Roles</button>
+</body>
+</html>
+
+import com.example.entitlements.entity.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface UserRepository extends JpaRepository<User, Long> {
+    // Additional custom queries if needed
+}
+
+import com.example.entitlements.entity.UserRole;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface UserRoleRepository extends JpaRepository<UserRole, Long> {
+    // Additional custom queries if needed
+}
