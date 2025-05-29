@@ -1,0 +1,375 @@
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "ROLES")
+public class Role {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "ROLE_KEY")
+    private Long roleKey;
+
+    @Column(name = "ROLE_NAME", length = 255)
+    private String roleName;
+
+    @Column(name = "ROLE_DESC", length = 1000)
+    private String roleDesc;
+
+    @Column(name = "ACTIVE_FLAG", length = 1)
+    private String activeFlag = "Y";
+
+    @Column(name = "INSERT_TSP")
+    private LocalDateTime insertTsp;
+
+    @Column(name = "INSERT_USER_ID", length = 255)
+    private String insertUserId;
+
+    @Column(name = "LAST_UPDATE_TSP")
+    private LocalDateTime lastUpdateTsp;
+
+    @Column(name = "LAST_UPDATE_USER_ID", length = 255)
+    private String lastUpdateUserId;
+
+    // Getters and Setters
+    public Long getRoleKey() {
+        return roleKey;
+    }
+
+    public void setRoleKey(Long roleKey) {
+        this.roleKey = roleKey;
+    }
+
+    public String getRoleName() {
+        return roleName;
+    }
+
+    public void setRoleName(String roleName) {
+        this.roleName = roleName;
+    }
+
+    public String getRoleDesc() {
+        return roleDesc;
+    }
+
+    public void setRoleDesc(String roleDesc) {
+        this.roleDesc = roleDesc;
+    }
+
+    public String getActiveFlag() {
+        return activeFlag;
+    }
+
+    public void setActiveFlag(String activeFlag) {
+        this.activeFlag = activeFlag;
+    }
+
+    public LocalDateTime getInsertTsp() {
+        return insertTsp;
+    }
+
+    public void setInsertTsp(LocalDateTime insertTsp) {
+        this.insertTsp = insertTsp;
+    }
+
+    public String getInsertUserId() {
+        return insertUserId;
+    }
+
+    public void setInsertUserId(String insertUserId) {
+        this.insertUserId = insertUserId;
+    }
+
+    public LocalDateTime getLastUpdateTsp() {
+        return lastUpdateTsp;
+    }
+
+    public void setLastUpdateTsp(LocalDateTime lastUpdateTsp) {
+        this.lastUpdateTsp = lastUpdateTsp;
+    }
+
+    public String getLastUpdateUserId() {
+        return lastUpdateUserId;
+    }
+
+    public void setLastUpdateUserId(String lastUpdateUserId) {
+        this.lastUpdateUserId = lastUpdateUserId;
+    }
+}
+
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "ROLE_PERMISSIONS")
+public class RolePermission {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "ROLE_PERMISSION_KEY")
+    private Long rolePermissionKey;
+
+    @Column(name = "ROLE_KEY")
+    private Long roleKey;
+
+    @Column(name = "RESOURCE_PERMISSION_KEY")
+    private Long resourcePermissionKey;
+
+    @Column(name = "ACTIVE_FLAG", length = 1)
+    private String activeFlag = "Y";
+
+    @Column(name = "INSERT_TSP")
+    private LocalDateTime insertTsp;
+
+    @Column(name = "INSERT_USER_ID", length = 255)
+    private String insertUserId;
+
+    @Column(name = "LAST_UPDATE_TSP")
+    private LocalDateTime lastUpdateTsp;
+
+    @Column(name = "LAST_UPDATE_USER_ID", length = 255)
+    private String lastUpdateUserId;
+
+    // Getters and Setters
+    public Long getRolePermissionKey() {
+        return rolePermissionKey;
+    }
+
+    public void setRolePermissionKey(Long rolePermissionKey) {
+        this.rolePermissionKey = rolePermissionKey;
+    }
+
+    public Long getRoleKey() {
+        return roleKey;
+    }
+
+    public void setRoleKey(Long roleKey) {
+        this.roleKey = roleKey;
+    }
+
+    public Long getResourcePermissionKey() {
+        return resourcePermissionKey;
+    }
+
+    public void setResourcePermissionKey(Long resourcePermissionKey) {
+        this.resourcePermissionKey = resourcePermissionKey;
+    }
+
+    public String getActiveFlag() {
+        return activeFlag;
+    }
+
+    public void setActiveFlag(String activeFlag) {
+        this.activeFlag = activeFlag;
+    }
+
+    public LocalDateTime getInsertTsp() {
+        return insertTsp;
+    }
+
+    public void setInsertTsp(LocalDateTime insertTsp) {
+        this.insertTsp = insertTsp;
+    }
+
+    public String getInsertUserId() {
+        return insertUserId;
+    }
+
+    public void setInsertUserId(String insertUserId) {
+        this.insertUserId = insertUserId;
+    }
+
+    public LocalDateTime getLastUpdateTsp() {
+        return lastUpdateTsp;
+    }
+
+    public void setLastUpdateTsp(LocalDateTime lastUpdateTsp) {
+        this.lastUpdateTsp = lastUpdateTsp;
+    }
+
+    public String getLastUpdateUserId() {
+        return lastUpdateUserId;
+    }
+
+    public void setLastUpdateUserId(String lastUpdateUserId) {
+        this.lastUpdateUserId = lastUpdateUserId;
+    }
+}
+
+public class RoleService {
+    @Autowired
+    private RoleRepository roleRepository;
+
+    @Autowired
+    private RolePermissionRepository rolePermissionRepository;
+
+    public Role createRole(Role role) {
+        role.setInsertTsp(LocalDateTime.now());
+        role.setLastUpdateTsp(LocalDateTime.now());
+        role.setInsertUserId("system");
+        role.setLastUpdateUserId("system");
+        role.setActiveFlag("Y");
+        return roleRepository.save(role);
+    }
+
+    public void assignPermissionsToRole(Long roleId, List<Long> permissionIds) {
+        for (Long permissionId : permissionIds) {
+            RolePermission rp = new RolePermission();
+            rp.setRoleKey(roleId);
+            rp.setResourcePermissionKey(permissionId);
+            rp.setInsertTsp(LocalDateTime.now());
+            rp.setLastUpdateTsp(LocalDateTime.now());
+            rp.setInsertUserId("system");
+            rp.setLastUpdateUserId("system");
+            rp.setActiveFlag("Y");
+            rolePermissionRepository.save(rp);
+        }
+    }
+}
+
+public class RoleService {
+    @Autowired
+    private RoleRepository roleRepository;
+
+    @Autowired
+    private RolePermissionRepository rolePermissionRepository;
+
+    public Role createRole(Role role) {
+        role.setInsertTsp(LocalDateTime.now());
+        role.setLastUpdateTsp(LocalDateTime.now());
+        role.setInsertUserId("system");
+        role.setLastUpdateUserId("system");
+        role.setActiveFlag("Y");
+        return roleRepository.save(role);
+    }
+
+    public void assignPermissionsToRole(Long roleId, List<Long> permissionIds) {
+        for (Long permissionId : permissionIds) {
+            RolePermission rp = new RolePermission();
+            rp.setRoleKey(roleId);
+            rp.setResourcePermissionKey(permissionId);
+            rp.setInsertTsp(LocalDateTime.now());
+            rp.setLastUpdateTsp(LocalDateTime.now());
+            rp.setInsertUserId("system");
+            rp.setLastUpdateUserId("system");
+            rp.setActiveFlag("Y");
+            rolePermissionRepository.save(rp);
+        }
+    }
+}
+
+<html>
+<head>
+    <title>Create Role</title>
+    <script>
+        async function createRole() {
+            const name = document.getElementById('roleName').value;
+            const desc = document.getElementById('roleDesc').value;
+            const response = await fetch('/api/roles', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ roleName: name, roleDesc: desc })
+            });
+            if (response.ok) {
+                alert('Role created!');
+                document.getElementById('roleForm').reset();
+                loadRoles();
+            } else {
+                alert('Error creating role.');
+            }
+        }
+
+        async function loadRoles() {
+            // implement if you want to list roles
+        }
+    </script>
+</head>
+<body>
+    <h1>Create Role</h1>
+    <form id="roleForm" onsubmit="event.preventDefault(); createRole();">
+        <label>Role Name:</label><br>
+        <input type="text" id="roleName" required><br><br>
+        <label>Role Description:</label><br>
+        <textarea id="roleDesc" rows="4" cols="50" required></textarea><br><br>
+        <button type="submit">Create Role</button>
+    </form>
+</body>
+</html>
+
+<html>
+<head>
+    <title>Assign Permissions to Role</title>
+    <script>
+        async function loadRoles() {
+            const response = await fetch('/api/roles'); // implement GET API for roles
+            const roles = await response.json();
+            const select = document.getElementById('roleSelect');
+            roles.forEach(r => {
+                const option = document.createElement('option');
+                option.value = r.roleKey;
+                option.text = r.roleName;
+                select.add(option);
+            });
+        }
+
+        async function loadPermissions() {
+            const response = await fetch('/api/permissions');
+            const permissions = await response.json();
+            const container = document.getElementById('permissionsContainer');
+            container.innerHTML = '';
+            permissions.forEach(p => {
+                const label = document.createElement('label');
+                label.innerHTML = `<input type="checkbox" value="${p.permissionKey}"> ${p.permissionName}<br>`;
+                container.appendChild(label);
+            });
+        }
+
+        async function assignPermissions() {
+            const roleId = document.getElementById('roleSelect').value;
+            const checkboxes = document.querySelectorAll('#permissionsContainer input[type=checkbox]:checked');
+            const permissionIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+            const response = await fetch(`/api/roles/${roleId}/permissions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(permissionIds)
+            });
+            if (response.ok) {
+                alert('Permissions assigned!');
+            } else {
+                alert('Error assigning permissions.');
+            }
+        }
+
+        window.onload = () => {
+            loadRoles();
+            loadPermissions();
+        };
+    </script>
+</head>
+<body>
+    <h1>Assign Permissions to Role</h1>
+    <label>Select Role:</label>
+    <select id="roleSelect"></select><br><br>
+    <h2>Select Permissions</h2>
+    <div id="permissionsContainer"></div>
+    <button onclick="assignPermissions()">Assign</button>
+</body>
+</html>
+
+import com.example.entitlements.entity.Role;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface RoleRepository extends JpaRepository<Role, Long> {
+    // Additional custom queries if needed
+}
+
+import com.example.entitlements.entity.RolePermission;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface RolePermissionRepository extends JpaRepository<RolePermission, Long> {
+    // Additional custom queries if needed
+}
