@@ -1,0 +1,119 @@
+public ResponseEntity<List<User>> getAllUsers() {
+    List<User> users = userService.getAllUsers();
+    return ResponseEntity.ok(users);
+}
+
+    
+    return userRepository.findAll();
+}
+
+<html>
+<head>
+    <title>Users List</title>
+    <script>
+        async function loadUsers() {
+            const response = await fetch('/api/users'); // API endpoint
+            const users = await response.json();
+            const tableBody = document.getElementById('usersTableBody');
+            tableBody.innerHTML = '';
+
+            users.forEach(user => {
+                const row = document.createElement('tr');
+
+                row.innerHTML = `
+                    <td>${user.userKey}</td>
+                    <td>${user.firstName}</td>
+                    <td>${user.lastName}</td>
+                    <td>${user.email}</td>
+                    <td>${user.phone}</td>
+                    <td>${user.userLoginId}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        function showNewUserForm() {
+            window.location.href = 'new_user.html';
+        }
+
+        window.onload = loadUsers;
+    </script>
+</head>
+<body>
+    <h1>User List</h1>
+    <button onclick="showNewUserForm()">Add New User</button>
+    <table border="1" cellpadding="5" cellspacing="0">
+        <thead>
+            <tr>
+                <th>User Key</th>
+                <th>First Name</th>
+                <th>Last Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Login ID</th>
+            </tr>
+        </thead>
+        <tbody id="usersTableBody"></tbody>
+    </table>
+</body>
+</html>
+
+<html>
+<head>
+    <title>Add New User</title>
+    <script>
+        async function saveUser() {
+            const data = {
+                firstName: document.getElementById('firstName').value,
+                lastName: document.getElementById('lastName').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                userLoginId: document.getElementById('userLoginId').value,
+                userTzAbbrev: document.getElementById('userTzAbbrev').value,
+                externalUserFlag: document.querySelector('input[name="externalUserFlag"]:checked').value
+            };
+
+            const response = await fetch('/api/users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                alert('User added successfully!');
+                window.location.href = 'users.html';
+            } else {
+                alert('Failed to add user.');
+            }
+        }
+    </script>
+</head>
+<body>
+    <h1>Add New User</h1>
+    <form onsubmit="event.preventDefault(); saveUser();">
+        <label>First Name:</label><br>
+        <input type="text" id="firstName" required><br><br>
+
+        <label>Last Name:</label><br>
+        <input type="text" id="lastName" required><br><br>
+
+        <label>Email:</label><br>
+        <input type="email" id="email" required><br><br>
+
+        <label>Phone:</label><br>
+        <input type="text" id="phone" required><br><br>
+
+        <label>User Login ID:</label><br>
+        <input type="text" id="userLoginId" required><br><br>
+
+        <label>User TZ Abbreviation:</label><br>
+        <input type="text" id="userTzAbbrev" required><br><br>
+
+        <label>External User Flag:</label><br>
+        <input type="radio" name="externalUserFlag" value="Y" checked> Yes
+        <input type="radio" name="externalUserFlag" value="N"> No<br><br>
+
+        <button type="submit">Save User</button>
+    </form>
+</body>
+</html>
