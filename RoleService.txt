@@ -1,0 +1,59 @@
+import com.example.entitlements.entity.Role;
+import com.example.entitlements.entity.RolePermission;
+import com.example.entitlements.repository.RoleRepository;
+import com.example.entitlements.repository.RolePermissionRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Service
+public class RoleService {
+
+    @Autowired
+    private RoleRepository roleRepository;
+
+    @Autowired
+    private RolePermissionRepository rolePermissionRepository;
+
+    /**
+     * Create a new role
+     */
+    public Role createRole(Role role) {
+        role.setInsertTsp(LocalDateTime.now());
+        role.setLastUpdateTsp(LocalDateTime.now());
+        role.setInsertUserId("system");
+        role.setLastUpdateUserId("system");
+        role.setActiveFlag("Y");
+        return roleRepository.save(role);
+    }
+
+    /**
+     * Retrieve all roles
+     */
+    public List<Role> getAllRoles() {
+        return roleRepository.findAll();
+    }
+
+    /**
+     * Assign a list of permission IDs to a role
+     */
+    public void assignPermissionsToRole(Long roleId, List<Long> permissionIds) {
+        // Load role
+        Role role = roleRepository.findById(roleId)
+                .orElseThrow(() -> new RuntimeException("Role not found: " + roleId));
+
+        for (Long permissionId : permissionIds) {
+            RolePermission rp = new RolePermission();
+            rp.setRoleKey(role.getRoleKey());
+            rp.setResourcePermissionKey(permissionId);
+            rp.setInsertTsp(LocalDateTime.now());
+            rp.setLastUpdateTsp(LocalDateTime.now());
+            rp.setInsertUserId("system");
+            rp.setLastUpdateUserId("system");
+            rp.setActiveFlag("Y");
+            rolePermissionRepository.save(rp);
+        }
+    }
+}
