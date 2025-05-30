@@ -1,0 +1,48 @@
+import com.example.entitlements.entity.Role;
+import com.example.entitlements.service.RoleService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/roles")
+public class RoleController {
+
+    @Autowired
+    private RoleService roleService;
+
+    /**
+     * Create a new role
+     * POST /api/roles
+     */
+    @PostMapping
+    public ResponseEntity<Role> createRole(@RequestBody Role role) {
+        Role createdRole = roleService.createRole(role);
+        return ResponseEntity.ok(createdRole);
+    }
+
+    /**
+     * Get all roles
+     * GET /api/roles
+     */
+    @GetMapping
+    public ResponseEntity<List<Role>> getAllRoles() {
+        List<Role> roles = roleService.getAllRoles();
+        return ResponseEntity.ok(roles);
+    }
+
+    /**
+     * Assign permissions to a role
+     * POST /api/roles/{roleId}/permissions
+     * Body: [permissionId1, permissionId2, ...]
+     */
+    @PostMapping("/{roleId}/permissions")
+    public ResponseEntity<Void> assignPermissionsToRole(
+            @PathVariable Long roleId,
+            @RequestBody List<Long> permissionIds) {
+        roleService.assignPermissionsToRole(roleId, permissionIds);
+        return ResponseEntity.ok().build();
+    }
+}
