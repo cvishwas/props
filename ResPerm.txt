@@ -1,0 +1,72 @@
+import com.example.entitlements.service.ResourceService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/resources")
+public class ResourceController {
+
+    @Autowired
+    private ResourceService resourceService;
+
+    // Other endpoints (create, get all, get by id) can be here
+
+    /**
+     * Associate a list of permission IDs with a resource
+     * POST /api/resources/{resourceId}/permissions
+     * Body: [permissionId1, permissionId2, ...]
+     */
+    @PostMapping("/{resourceId}/permissions")
+    public ResponseEntity<Void> associatePermissions(
+            @PathVariable Long resourceId,
+            @RequestBody List<Long> permissionIds) {
+        resourceService.associatePermissions(resourceId, permissionIds);
+        return ResponseEntity.ok().build();
+    }
+}
+
+import com.example.entitlements.entity.Resource;
+import com.example.entitlements.entity.ResourcePermission;
+import com.example.entitlements.repository.ResourceRepository;
+import com.example.entitlements.repository.ResourcePermissionRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Service
+public class ResourceService {
+
+    @Autowired
+    private ResourceRepository resourceRepository;
+
+    @Autowired
+    private ResourcePermissionRepository resourcePermissionRepository;
+
+    // Other methods like createResource, getAllResources, etc.
+
+    /**
+     * Associate list of permission IDs to a resource
+     */
+    public void associatePermissions(Long resourceId, List<Long> permissionIds) {
+        // Load resource
+        Resource resource = resourceRepository.findById(resourceId)
+                .orElseThrow(() -> new RuntimeException("Resource not found: " + resourceId));
+
+        for (Long permissionId : permissionIds) {
+            ResourcePermission rp = new ResourcePermission();
+            rp.setResourceKey(resource.getResourceKey());
+            rp.setPermissionKey(permissionId);
+            rp.setInsertTsp(LocalDateTime.now());
+            rp.setLastUpdateTsp(LocalDateTime.now());
+            rp.setInsertUserId("system");
+            rp.setLastUpdateUserId("system");
+            rp.setActiveFlag("Y");
+            resourcePermissionRepository.save(rp);
+        }
+    }
+}
