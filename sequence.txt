@@ -1,0 +1,9 @@
+Entity  Organization to use the sequence ORGANIZATIONS_SEQ
+Entity  Permission  to use the sequence PERMISSIONS_SEQ
+Entity  Resource  to use the sequence RESOURCES_SEQ
+Entity  ResourcePermission  to use the sequence RESOURCE_PERMISSIONS_SEQ
+Entity  ResourceType  to use the sequence RESOURCE_TYPES_SEQ
+Entity  Role ROLES_ to use the sequence SEQ
+Entity  RolePermission  to use the sequence ROLE_PERMISSIONS_SEQ
+Entity  User  to use the sequence USERS_SEQ
+Entity  UserRole  to use the sequence USER_ROLES_SEQ
