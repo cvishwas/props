@@ -1,0 +1,227 @@
+@Table(name = "ORGANIZATIONS")
+public class Organization {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "ORGANIZATIONS_SEQ_GEN")
+    @SequenceGenerator(name = "ORGANIZATIONS_SEQ_GEN", sequenceName = "ORGANIZATIONS_SEQ", allocationSize = 1)
+    @Column(name = "ORG_KEY")
+    private Long orgKey;
+
+    @Column(name = "ORG_NAME", length = 255)
+    private String orgName;
+
+    @Column(name = "ORG_DESC", length = 1000)
+    private String orgDesc;
+
+    @Column(name = "ACTIVE_FLAG", length = 1)
+    private String activeFlag = "Y";
+
+    @Column(name = "INSERT_TSP")
+    private LocalDateTime insertTsp;
+
+    @Column(name = "INSERT_USER_ID", length = 255)
+    private String insertUserId;
+
+    @Column(name = "LAST_UPDATE_TSP")
+    private LocalDateTime lastUpdateTsp;
+
+    @Column(name = "LAST_UPDATE_USER_ID", length = 255)
+    private String lastUpdateUserId;
+
+    // getters/setters...
+}
+
+@Table(name = "PERMISSIONS")
+public class Permission {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "PERMISSIONS_SEQ_GEN")
+    @SequenceGenerator(name = "PERMISSIONS_SEQ_GEN", sequenceName = "PERMISSIONS_SEQ", allocationSize = 1)
+    @Column(name = "PERMISSION_KEY")
+    private Long permissionKey;
+
+    @Column(name = "PERMISSION_NAME", length = 255)
+    private String permissionName;
+
+    @Column(name = "PERMISSION_DESC", length = 1000)
+    private String permissionDesc;
+
+    @Column(name = "INSERT_TSP")
+    private LocalDateTime insertTsp;
+
+    @Column(name = "INSERT_USER_ID", length = 255)
+    private String insertUserId;
+
+    @Column(name = "LAST_UPDATE_TSP")
+    private LocalDateTime lastUpdateTsp;
+
+    @Column(name = "LAST_UPDATE_USER_ID", length = 255)
+    private String lastUpdateUserId;
+
+    // getters/setters...
+}
+
+@Table(name = "RESOURCES")
+public class Resource {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "RESOURCES_SEQ_GEN")
+    @SequenceGenerator(name = "RESOURCES_SEQ_GEN", sequenceName = "RESOURCES_SEQ", allocationSize = 1)
+    @Column(name = "RESOURCE_KEY")
+    private Long resourceKey;
+
+    @Column(name = "RESOURCE_NAME", length = 255)
+    private String resourceName;
+
+    @Column(name = "RESOURCE_DESC", length = 1000)
+    private String resourceDesc;
+
+    @Column(name = "RESOURCE_TYPE_KEY")
+    private Long resourceTypeKey;
+
+    @Column(name = "INSERT_TSP")
+    private LocalDateTime insertTsp;
+
+    @Column(name = "INSERT_USER_ID", length = 255)
+    private String insertUserId;
+
+    @Column(name = "LAST_UPDATE_TSP")
+    private LocalDateTime lastUpdateTsp;
+
+    @Column(name = "LAST_UPDATE_USER_ID", length = 255)
+    private String lastUpdateUserId;
+
+    // getters/setters...
+}
+
+@Table(name = "RESOURCE_PERMISSIONS")
+public class ResourcePermission {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "RESOURCE_PERMISSIONS_SEQ_GEN")
+    @SequenceGenerator(name = "RESOURCE_PERMISSIONS_SEQ_GEN", sequenceName = "RESOURCE_PERMISSIONS_SEQ", allocationSize = 1)
+    @Column(name = "RESOURCE_PERMISSION_KEY")
+    private Long resourcePermissionKey;
+
+    @Column(name = "RESOURCE_KEY")
+    private Long resourceKey;
+
+    @Column(name = "PERMISSION_KEY")
+    private Long permissionKey;
+
+    @Column(name = "ACTIVE_FLAG", length = 1)
+    private String activeFlag = "Y";
+
+    @Column(name = "INSERT_TSP")
+    private LocalDateTime insertTsp;
+
+    @Column(name = "INSERT_USER_ID", length = 255)
+    private String insertUserId;
+
+    @Column(name = "LAST_UPDATE_TSP")
+    private LocalDateTime lastUpdateTsp;
+
+    @Column(name = "LAST_UPDATE_USER_ID", length = 255)
+    private String lastUpdateUserId;
+
+    // getters/setters...
+}
+
+@Table(name = "RESOURCE_TYPES")
+public class ResourceType {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "RESOURCE_TYPES_SEQ_GEN")
+    @SequenceGenerator(name = "RESOURCE_TYPES_SEQ_GEN", sequenceName = "RESOURCE_TYPES_SEQ", allocationSize = 1)
+    @Column(name = "RESOURCE_TYPE_KEY")
+    private Long resourceTypeKey;
+
+    @Column(name = "RESOURCE_TYPE_NAME", length = 255)
+    private String resourceTypeName;
+
+    @Column(name = "RESOURCE_TYPE_DESC", length = 1000)
+    private String resourceTypeDesc;
+
+    @Column(name = "ACTIVE_FLAG", length = 1)
+    private String activeFlag = "Y";
+
+    @Column(name = "INSERT_TSP")
+    private LocalDateTime insertTsp;
+
+    @Column(name = "INSERT_USER_ID", length = 255)
+    private String insertUserId;
+
+    @Column(name = "LAST_UPDATE_TSP")
+    private LocalDateTime lastUpdateTsp;
+
+    @Column(name = "LAST_UPDATE_USER_ID", length = 255)
+    private String lastUpdateUserId;
+
+    // getters/setters...
+}
+
+@Table(name = "ROLES")
+public class Role {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "SEQ_GEN")
+    @SequenceGenerator(name = "SEQ_GEN", sequenceName = "SEQ", allocationSize = 1)
+    @Column(name = "ROLE_KEY")
+    private Long roleKey;
+
+    @Column(name = "ROLE_NAME", length = 255)
+    private String roleName;
+
+    @Column(name = "ROLE_DESC", length = 1000)
+    private String roleDesc;
+
+    @Column(name = "ACTIVE_FLAG", length = 1)
+    private String activeFlag = "Y";
+
+    @Column(name = "INSERT_TSP")
+    private LocalDateTime insertTsp;
+
+    @Column(name = "INSERT_USER_ID", length = 255)
+    private String insertUserId;
+
+    @Column(name = "LAST_UPDATE_TSP")
+    private LocalDateTime lastUpdateTsp;
+
+    @Column(name = "LAST_UPDATE_USER_ID", length = 255)
+    private String lastUpdateUserId;
+
+    // getters/setters...
+}
+
+@Table(name = "ROLE_PERMISSIONS")
+public class RolePermission {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "ROLE_PERMISSIONS_SEQ_GEN")
+    @SequenceGenerator(name = "ROLE_PERMISSIONS_SEQ_GEN", sequenceName = "ROLE_PERMISSIONS_SEQ", allocationSize = 1)
+    @Column(name = "ROLE_PERMISSION_KEY")
+    private Long rolePermissionKey;
+
+    @Column(name = "ROLE_KEY")
+    private Long roleKey;
+
+    @Column(name = "RESOURCE_PERMISSION_KEY")
+    private Long resourcePermissionKey;
+
+    @Column(name = "ACTIVE_FLAG", length = 1)
+    private String activeFlag = "Y";
+
+    @Column(name = "INSERT_TSP")
+    private LocalDateTime insertTsp;
+
+    @Column(name = "INSERT_USER_ID", length = 255)
+    private String insertUserId;
+
+    @Column(name = "LAST_UPDATE_TSP")
+    private LocalDateTime lastUpdateTsp;
+
+    @Column(name = "LAST_UPDATE_USER_ID", length = 255)
+    private String lastUpdateUserId;
+
+    // getters/setters...
+}
