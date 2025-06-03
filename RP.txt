@@ -1,0 +1,273 @@
+import com.example.organization.model.Role;
+import com.example.organization.model.ResourcePermission;
+import com.example.organization.model.RolePermission;
+import com.example.organization.repository.RolePermissionRepository;
+import com.example.organization.repository.RoleRepository;
+import com.example.organization.repository.ResourcePermissionRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.sql.Timestamp;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * Service for managing Role-Permission associations.
+ */
+@Service
+public class RolePermissionService {
+
+    @Autowired
+    private RolePermissionRepository rolePermissionRepository;
+
+    @Autowired
+    private RoleRepository roleRepository;
+
+    @Autowired
+    private ResourcePermissionRepository resourcePermissionRepository;
+
+    /**
+     * Assign multiple resource permissions to a role.
+     *
+     * @param roleId                 ID of the role
+     * @param resourcePermissionIds List of resource permission IDs
+     * @param userId                 User performing the operation (for audit)
+     */
+    public void assignPermissionsToRole(Long roleId, List<Long> resourcePermissionIds, String userId) {
+        Role role = roleRepository.findById(roleId)
+                .orElseThrow(() -> new RuntimeException("Role not found with ID: " + roleId));
+
+        List<ResourcePermission> resourcePermissions = resourcePermissionIds.stream()
+                .map(id -> resourcePermissionRepository.findById(id)
+                        .orElseThrow(() -> new RuntimeException("ResourcePermission not found with ID: " + id)))
+                .collect(Collectors.toList());
+
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+
+        for (ResourcePermission rp : resourcePermissions) {
+            // Create new RolePermission
+            RolePermission rolePerm = new RolePermission();
+            rolePerm.setRole(role);
+            rolePerm.setResourcePermission(rp);
+            rolePerm.setActiveFlag("Y");
+            rolePerm.setInsertTsp(now);
+            rolePerm.setLastUpdateTsp(now);
+            rolePerm.setInsertUserId(userId);
+            rolePerm.setLastUpdateUserId(userId);
+
+            rolePermissionRepository.save(rolePerm);
+        }
+    }
+
+    /**
+     * Retrieve all role-permission associations (optional utility)
+     */
+    public List<RolePermission> getAllRolePermissions() {
+        return rolePermissionRepository.findAll();
+    }
+
+    /**
+     * Retrieve role permissions for a specific role
+     */
+    public List<RolePermission> getPermissionsByRole(Long roleId) {
+        return rolePermissionRepository.findAll().stream()
+                .filter(rp -> rp.getRole().getRoleKey().equals(roleId))
+                .collect(Collectors.toList());
+    }
+}
+
+import com.example.organization.model.Role;
+import com.example.organization.model.ResourcePermission;
+import com.example.organization.service.RoleService;
+import com.example.organization.service.ResourcePermissionService;
+import com.example.organization.service.RolePermissionService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api")
+public class RoleResourcePermissionController {
+
+    @Autowired
+    private RoleService roleService;
+
+    @Autowired
+    private ResourcePermissionService resourcePermissionService;
+
+    @Autowired
+    private RolePermissionService rolePermissionService;
+
+    @GetMapping("/roles")
+    public List<Role> getRoles() {
+        return roleService.getAllRoles();
+    }
+
+    @GetMapping("/resources")
+    public List<Resource> getResources() {
+        return resourceRepository.findAll();
+    }
+
+    @GetMapping("/resourcepermissions")
+    public List<ResourcePermission> getResourcePermissions(@RequestParam Long resourceId) {
+        return resourcePermissionRepository.findByResourceResourceKey(resourceId);
+    }
+
+    @PostMapping("/rolepermissions")
+    public ResponseEntity<?> assignPermissions(@RequestBody RolePermissionAssignmentDto dto) {
+        rolePermissionService.assignPermissionsToRole(dto.getRoleId(), dto.getResourcePermissionIds(), dto.getUserId());
+        return ResponseEntity.ok().build();
+    }
+
+    // DTO class
+    public static class RolePermissionAssignmentDto {
+        private Long roleId;
+        private List<Long> resourcePermissionIds;
+        private String userId;
+
+        // Getters and setters
+        public Long getRoleId() { return roleId; }
+        public void setRoleId(Long roleId) { this.roleId = roleId; }
+
+        public List<Long> getResourcePermissionIds() { return resourcePermissionIds; }
+        public void setResourcePermissionIds(List<Long> resourcePermissionIds) { this.resourcePermissionIds = resourcePermissionIds; }
+
+        public String getUserId() { return userId; }
+        public void setUserId(String userId) { this.userId = userId; }
+    }
+}
+
+import com.example.organization.model.ResourcePermission;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface ResourcePermissionRepository extends JpaRepository<ResourcePermission, Long> {
+    List<ResourcePermission> findByResourceResourceKey(Long resourceKey);
+}
+
+import com.example.organization.model.RolePermission;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface RolePermissionRepository extends JpaRepository<RolePermission, Long> {
+    // Additional custom queries if needed
+}
+
+import com.example.organization.model.ResourcePermission;
+import com.example.organization.repository.ResourcePermissionRepository;
+import com.example.organization.model.Resource;
+import com.example.organization.model.Permission;
+import com.example.organization.repository.ResourceRepository;
+import com.example.organization.repository.PermissionRepository;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.sql.Timestamp;
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class ResourcePermissionService {
+
+    @Autowired
+    private ResourcePermissionRepository resourcePermissionRepository;
+
+    @Autowired
+    private ResourceRepository resourceRepository;
+
+    @Autowired
+    private PermissionRepository permissionRepository;
+
+    public List<ResourcePermission> getAllResourcePermissions() {
+        return resourcePermissionRepository.findAll();
+    }
+
+    public Optional<ResourcePermission> getResourcePermission(Long id) {
+        return resourcePermissionRepository.findById(id);
+    }
+
+    public List<ResourcePermission> getPermissionsByResource(Long resourceId) {
+        return resourcePermissionRepository.findByResourceResourceKey(resourceId);
+    }
+
+    public ResourcePermission createResourcePermission(Long resourceId, Long permissionId, String userId) {
+        Resource resource = resourceRepository.findById(resourceId)
+                .orElseThrow(() -> new RuntimeException("Resource not found"));
+
+        Permission permission = permissionRepository.findById(permissionId)
+                .orElseThrow(() -> new RuntimeException("Permission not found"));
+
+        ResourcePermission rp = new ResourcePermission();
+        rp.setResource(resource);
+        rp.setPermission(permission);
+        rp.setActiveFlag("Y");
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+        rp.setInsertTsp(now);
+        rp.setLastUpdateTsp(now);
+        rp.setInsertUserId(userId);
+        rp.setLastUpdateUserId(userId);
+
+        return resourcePermissionRepository.save(rp);
+    }
+}
+
+import com.example.organization.model.Role;
+import com.example.organization.model.ResourcePermission;
+import com.example.organization.model.RolePermission;
+import com.example.organization.repository.RoleRepository;
+import com.example.organization.repository.ResourcePermissionRepository;
+import com.example.organization.repository.RolePermissionRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.sql.Timestamp;
+import java.util.List;
+
+@Service
+public class RolePermissionService {
+
+    @Autowired
+    private RolePermissionRepository rolePermissionRepository;
+
+    @Autowired
+    private RoleRepository roleRepository;
+
+    @Autowired
+    private ResourcePermissionRepository resourcePermissionRepository;
+
+    /**
+     * Assign multiple resource permissions to a role.
+     */
+    public void assignPermissionsToRole(Long roleId, List<Long> resourcePermissionIds, String userId) {
+        Role role = roleRepository.findById(roleId)
+                .orElseThrow(() -> new RuntimeException("Role not found with ID: " + roleId));
+
+        for (Long rpId : resourcePermissionIds) {
+            ResourcePermission rp = resourcePermissionRepository.findById(rpId)
+                .orElseThrow(() -> new RuntimeException("ResourcePermission not found with ID: " + rpId));
+            RolePermission rolePerm = new RolePermission();
+            rolePerm.setRole(role);
+            rolePerm.setResourcePermission(rp);
+            rolePerm.setActiveFlag("Y");
+            Timestamp now = new Timestamp(System.currentTimeMillis());
+            rolePerm.setInsertTsp(now);
+            rolePerm.setLastUpdateTsp(now);
+            rolePerm.setInsertUserId(userId);
+            rolePerm.setLastUpdateUserId(userId);
+
+            rolePermissionRepository.save(rolePerm);
+        }
+    }
+
+    public List<RolePermission> getAllRolePermissions() {
+        return rolePermissionRepository.findAll();
+    }
+}
