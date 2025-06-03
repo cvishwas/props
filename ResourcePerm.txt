@@ -1,0 +1,316 @@
+import jakarta.persistence.*;
+import java.sql.Timestamp;
+
+@Entity
+@Table(name = "ROLE_PERMISSIONS")
+public class RolePermission {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "ROLE_PERMISSION_KEY")
+    private Long rolePermissionKey;
+
+    @ManyToOne
+    @JoinColumn(name = "ROLE_KEY", nullable = false)
+    private Role role;
+
+    @ManyToOne
+    @JoinColumn(name = "RESOURCE_PERMISSION_KEY", nullable = false)
+    private ResourcePermission resourcePermission;
+
+    @Column(name = "ACTIVE_FLAG")
+    private String activeFlag;
+
+    @Column(name = "INSERT_TSP")
+    private Timestamp insertTsp;
+
+    @Column(name = "INSERT_USER_ID")
+    private String insertUserId;
+
+    @Column(name = "LAST_UPDATE_TSP")
+    private Timestamp lastUpdateTsp;
+
+    @Column(name = "LAST_UPDATE_USER_ID")
+    private String lastUpdateUserId;
+
+    // Getters and setters...
+}
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Assign Permissions to Role</title>
+<script>
+async function loadRoles() {
+  const res = await fetch('/api/roles');
+  const roles = await res.json();
+  const roleSelect = document.getElementById('roleSelect');
+  roles.forEach(r => {
+    const option = document.createElement('option');
+    option.value = r.roleKey;
+    option.text = r.roleName;
+    roleSelect.appendChild(option);
+  });
+}
+
+async function loadResourcePermissions() {
+  const res = await fetch('/api/resourcepermissions');
+  const perms = await res.json();
+  const container = document.getElementById('permissionsContainer');
+  perms.forEach(p => {
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = p.resourcePermissionKey;
+    checkbox.id = 'perm_' + p.resourcePermissionKey;
+
+    const label = document.createElement('label');
+    label.htmlFor = 'perm_' + p.resourcePermissionKey;
+    label.innerText = p.resource.resourceName + ' - ' + p.permission.permissionName;
+
+    container.appendChild(checkbox);
+    container.appendChild(label);
+    container.appendChild(document.createElement('br'));
+  });
+}
+
+async function assignPermissions() {
+  const roleId = document.getElementById('roleSelect').value;
+  const userId = document.getElementById('userId').value;
+
+  const checkboxes = document.querySelectorAll('#permissionsContainer input[type=checkbox]');
+  const selectedPerms = [];
+  checkboxes.forEach(cb => {
+    if (cb.checked) {
+      selectedPerms.push(parseInt(cb.value));
+    }
+  });
+
+  const payload = {
+    roleId: parseInt(roleId),
+    resourcePermissionIds: selectedPerms,
+    userId: userId
+  };
+
+  const res = await fetch('/api/rolepermissions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (res.ok) {
+    alert('Permissions assigned successfully.');
+  } else {
+    alert('Error assigning permissions.');
+  }
+}
+
+window.onload = () => {
+  loadRoles();
+  loadResourcePermissions();
+};
+</script>
+</head>
+<body>
+<h2>Assign Permissions to Role</h2>
+<label for="roleSelect">Select Role:</label>
+<select id="roleSelect" required></select><br /><br />
+
+<label for="userId">Your User ID:</label>
+<input type="text" id="userId" required/><br /><br />
+
+<h3>Select Resource Permissions:</h3>
+<div id="permissionsContainer" style="max-height:300px; overflow-y:auto; border:1px solid #ccc; padding:10px;">
+</div>
+
+<button onclick="assignPermissions()">Assign Permissions</button>
+</body>
+</html>
+
+package com.example.organization.repository;
+import com.example.organization.model.Role;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface RoleRepository extends JpaRepository<Role, Long> {}
+
+// ResourcePermissionRepository.java
+package com.example.organization.repository;
+import com.example.organization.model.ResourcePermission;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface ResourcePermissionRepository extends JpaRepository<ResourcePermission, Long> {}
+
+// RolePermissionRepository.java
+package com.example.organization.repository;
+import com.example.organization.model.RolePermission;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface RolePermissionRepository extends JpaRepository<RolePermission, Long> {}
+
+package com.example.organization.service;
+import com.example.organization.model.Role;
+import com.example.organization.repository.RoleRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import java.sql.Timestamp;
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class RoleService {
+    @Autowired
+    private RoleRepository roleRepo;
+
+    public Role createRole(Role role) {
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+        role.setInsertTsp(now);
+        role.setLastUpdateTsp(now);
+        return roleRepo.save(role);
+    }
+
+    public List<Role> getAllRoles() { return roleRepo.findAll(); }
+    public Optional<Role> getRole(Long id) { return roleRepo.findById(id); }
+}
+
+import com.example.organization.model.ResourcePermission;
+import com.example.organization.repository.ResourcePermissionRepository;
+import com.example.organization.model.Resource;
+import com.example.organization.model.Permission;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.sql.Timestamp;
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class ResourcePermissionService {
+
+    @Autowired
+    private ResourcePermissionRepository resourcePermissionRepository;
+
+    @Autowired
+    private ResourceRepository resourceRepository;
+
+    @Autowired
+    private PermissionRepository permissionRepository;
+
+    /**
+     * Fetch all resource permissions
+     */
+    public List<ResourcePermission> getAllResourcePermissions() {
+        return resourcePermissionRepository.findAll();
+    }
+
+    /**
+     * Fetch a resource permission by ID
+     */
+    public Optional<ResourcePermission> getResourcePermission(Long id) {
+        return resourcePermissionRepository.findById(id);
+    }
+
+    /**
+     * Create a new resource permission
+     * Assumes resourceId and permissionId are provided, along with userId for audit
+     */
+    public ResourcePermission createResourcePermission(Long resourceId, Long permissionId, String userId) {
+        Resource resource = resourceRepository.findById(resourceId)
+                .orElseThrow(() -> new RuntimeException("Resource not found"));
+
+        Permission permission = permissionRepository.findById(permissionId)
+                .orElseThrow(() -> new RuntimeException("Permission not found"));
+
+        ResourcePermission rp = new ResourcePermission();
+        rp.setResource(resource);
+        rp.setPermission(permission);
+        rp.setActiveFlag("Y");
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+        rp.setInsertTsp(now);
+        rp.setLastUpdateTsp(now);
+        rp.setInsertUserId(userId);
+        rp.setLastUpdateUserId(userId);
+
+        return resourcePermissionRepository.save(rp);
+    }
+}
+
+import com.example.organization.model.RolePermission;
+import com.example.organization.service.RolePermissionService;
+import com.example.organization.service.RoleService;
+import com.example.organization.service.ResourcePermissionService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api")
+public class RolePermissionController {
+
+    @Autowired
+    private RoleService roleService;
+
+    @Autowired
+    private ResourcePermissionService resourcePermissionService;
+
+    @Autowired
+    private RolePermissionService rolePermissionService;
+
+    /**
+     * Get all roles
+     */
+    @GetMapping("/roles")
+    public List<Role> getAllRoles() {
+        return roleService.getAllRoles();
+    }
+
+    /**
+     * Get all resource permissions
+     */
+    @GetMapping("/resourcepermissions")
+    public List<ResourcePermission> getAllResourcePermissions() {
+        return resourcePermissionService.getAllResourcePermissions();
+    }
+
+    /**
+     * Assign multiple resource permissions to a role
+     * Payload example:
+     * {
+     *   "roleId": 1,
+     *   "resourcePermissionIds": [101, 102],
+     *   "userId": "admin"
+     * }
+     */
+    @PostMapping("/rolepermissions")
+    public ResponseEntity<String> assignPermissionsToRole(@RequestBody RolePermissionRequest request) {
+        try {
+            rolePermissionService.assignPermissionsToRole(request.getRoleId(), request.getResourcePermissionIds(), request.getUserId());
+            return ResponseEntity.ok("Permissions assigned successfully");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error: " + e.getMessage());
+        }
+    }
+
+    // DTO class for request payload
+    public static class RolePermissionRequest {
+        private Long roleId;
+        private List<Long> resourcePermissionIds;
+        private String userId;
+
+        public Long getRoleId() { return roleId; }
+        public void setRoleId(Long roleId) { this.roleId = roleId; }
+
+        public List<Long> getResourcePermissionIds() { return resourcePermissionIds; }
+        public void setResourcePermissionIds(List<Long> resourcePermissionIds) { this.resourcePermissionIds = resourcePermissionIds; }
+
+        public String getUserId() { return userId; }
+        public void setUserId(String userId) { this.userId = userId; }
+    }
+}
