@@ -1,0 +1,89 @@
+import com.example.organization.model.Resource;
+import com.example.organization.model.ResourcePermission;
+import com.example.organization.service.ResourceService;
+import com.example.organization.service.ResourcePermissionService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api")
+public class ResourceController {
+
+    @Autowired
+    private ResourceService resourceService;
+
+    @Autowired
+    private ResourcePermissionService resourcePermissionService;
+
+    // Fetch all resources
+    @GetMapping("/resources")
+    public List<Resource> getResources() {
+        return resourceService.getAllResources();
+    }
+
+    // Fetch permissions for a specific resource
+    @GetMapping("/resourcepermissions")
+    public List<ResourcePermission> getPermissionsByResource(@RequestParam Long resourceId) {
+        return resourcePermissionService.getPermissionsByResource(resourceId);
+    }
+}
+
+import com.example.organization.model.Resource;
+import com.example.organization.repository.ResourceRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class ResourceService {
+
+    @Autowired
+    private ResourceRepository resourceRepository;
+
+    public List<Resource> getAllResources() {
+        return resourceRepository.findAll();
+    }
+}
+
+import com.example.organization.model.ResourcePermission;
+import com.example.organization.repository.ResourcePermissionRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class ResourcePermissionService {
+
+    @Autowired
+    private ResourcePermissionRepository resourcePermissionRepository;
+
+    public List<ResourcePermission> getPermissionsByResource(Long resourceId) {
+        return resourcePermissionRepository.findByResourceResourceKey(resourceId);
+    }
+}
+
+import com.example.organization.model.Resource;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface ResourceRepository extends JpaRepository<Resource, Long> {
+}
+
+package com.example.organization.repository;
+
+import com.example.organization.model.ResourcePermission;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface ResourcePermissionRepository extends JpaRepository<ResourcePermission, Long> {
+    List<ResourcePermission> findByResourceResourceKey(Long resourceKey);
+}
