@@ -1,0 +1,116 @@
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Assign Permissions to Role on Resource</title>
+<script>
+async function loadRoles() {
+  const res = await fetch('/api/roles');
+  const roles = await res.json();
+  const roleSelect = document.getElementById('roleSelect');
+  roles.forEach(r => {
+    const option = document.createElement('option');
+    option.value = r.roleKey;
+    option.text = r.roleName;
+    roleSelect.appendChild(option);
+  });
+}
+
+async function loadResources() {
+  const res = await fetch('/api/resources');
+  const resources = await res.json();
+  const resourceSelect = document.getElementById('resourceSelect');
+  resources.forEach(r => {
+    const option = document.createElement('option');
+    option.value = r.resourceKey;
+    option.text = r.resourceName;
+    resourceSelect.appendChild(option);
+  });
+}
+
+// When resource dropdown changes, load permissions
+async function loadPermissions() {
+  const resourceId = document.getElementById('resourceSelect').value;
+  if (!resourceId) return;
+
+  // Clear previous permissions
+  const container = document.getElementById('permissionsDiv');
+  container.innerHTML = '';
+
+  // Fetch permissions for selected resource
+  const res = await fetch(`/api/resourcepermissions?resourceId=${resourceId}`);
+  const perms = await res.json();
+
+  perms.forEach(p => {
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = p.resourcePermissionKey;
+    checkbox.id = 'perm_' + p.resourcePermissionKey;
+
+    const label = document.createElement('label');
+    label.htmlFor = 'perm_' + p.resourcePermissionKey;
+    label.innerText = p.permission.permissionName + ' (' + p.resource.resourceName + ')';
+
+    container.appendChild(checkbox);
+    container.appendChild(label);
+    container.appendChild(document.createElement('br'));
+  });
+}
+
+async function assignPermissions() {
+  const roleId = document.getElementById('roleSelect').value;
+  const userId = document.getElementById('userId').value;
+  const checkboxes = document.querySelectorAll('#permissionsDiv input[type=checkbox]');
+  const selectedResourcePerms = [];
+
+  checkboxes.forEach(cb => {
+    if (cb.checked) {
+      selectedResourcePerms.push(parseInt(cb.value));
+    }
+  });
+
+  const payload = {
+    roleId: parseInt(roleId),
+    resourcePermissionIds: selectedResourcePerms,
+    userId: userId
+  };
+
+  const res = await fetch('/api/rolepermissions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (res.ok) {
+    alert('Permissions assigned to role successfully.');
+  } else {
+    alert('Error assigning permissions.');
+  }
+}
+
+window.onload = () => {
+  loadRoles();
+  loadResources();
+  document.getElementById('resourceSelect').addEventListener('change', loadPermissions);
+};
+</script>
+</head>
+<body>
+<h2>Assign Permissions to Role on Resource</h2>
+
+<label for="roleSelect">Select Role:</label>
+<select id="roleSelect" required></select><br /><br />
+
+<label for="userId">Your User ID:</label>
+<input type="text" id="userId" required/><br /><br />
+
+<label for="resourceSelect">Select Resource:</label>
+<select id="resourceSelect" required></select><br /><br />
+
+<h3>Permissions for Selected Resource:</h3>
+<div id="permissionsDiv" style="max-height:300px; overflow-y:auto; border:1px solid #ccc; padding:10px;">
+</div>
+
+<button onclick="assignPermissions()">Assign Selected Permissions to Role</button>
+
+</body>
+</html>
