@@ -1,0 +1,67 @@
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Select Permissions for Resource</title>
+<script>
+  // Load resources into dropdown on page load
+  async function loadResources() {
+    const response = await fetch('/api/resources');
+    const resources = await response.json();
+    const resourceDropdown = document.getElementById('resourceDropdown');
+    resources.forEach(resource => {
+      const option = document.createElement('option');
+      option.value = resource.resourceKey;
+      option.text = resource.resourceName;
+      resourceDropdown.appendChild(option);
+    });
+  }
+
+  // Fetch permissions when resource is selected
+  async function fetchPermissions() {
+    const resourceId = document.getElementById('resourceDropdown').value;
+    if (!resourceId) return;
+
+    const response = await fetch(`/api/resourcepermissions?resourceId=${resourceId}`);
+    const permissions = await response.json();
+
+    const container = document.getElementById('permissionsContainer');
+    container.innerHTML = ''; // clear previous permissions
+
+    permissions.forEach(perm => {
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.id = 'perm_' + perm.resourcePermissionKey;
+      checkbox.value = perm.resourcePermissionKey;
+
+      const label = document.createElement('label');
+      label.htmlFor = 'perm_' + perm.resourcePermissionKey;
+      label.innerText = perm.permission.permissionName;
+
+      const div = document.createElement('div');
+      div.appendChild(checkbox);
+      div.appendChild(label);
+
+      container.appendChild(div);
+    });
+  }
+
+  // Load resources on page load
+  window.onload = () => {
+    loadResources();
+    document.getElementById('resourceDropdown').addEventListener('change', fetchPermissions);
+  };
+</script>
+</head>
+<body>
+<h2>Select Resource and Permissions</h2>
+<label for="resourceDropdown">Resource:</label>
+<select id="resourceDropdown" required>
+  <option value="">--Select Resource--</option>
+</select>
+
+<h3>Permissions:</h3>
+<div id="permissionsContainer" style="border:1px solid #ccc; padding:10px; max-height:300px; overflow-y:auto;">
+  <!-- Permissions will be loaded here -->
+</div>
+</body>
+</html>
