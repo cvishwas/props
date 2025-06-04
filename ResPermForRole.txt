@@ -1,0 +1,24 @@
+import java.util.stream.Collectors;
+
+@Service
+public class RolePermissionGroupService {
+
+    @Autowired
+    private RolePermissionRepository rolePermissionRepository;
+
+    public Map<Long, List<Permission>> getPermissionsGroupedByResource(Long roleId) {
+        List<RolePermission> rolePerms = rolePermissionRepository.findByRoleRoleKey(roleId);
+        Map<Long, List<Permission>> resourcePermissionsMap = new HashMap<>();
+
+        for (RolePermission rp : rolePerms) {
+            Long resourceId = rp.getResourcePermission().getResource().getResourceKey();
+            Permission permission = rp.getResourcePermission().getPermission();
+
+            resourcePermissionsMap
+                .computeIfAbsent(resourceId, k -> new ArrayList<>())
+                .add(permission);
+        }
+
+        return resourcePermissionsMap;
+    }
+}
