@@ -1,0 +1,152 @@
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Assign Role to Permissions under Resources</title>
+<style>
+  .resource {
+    margin-top: 10px;
+    border: 1px solid #ccc;
+    padding: 5px;
+  }
+  .resource-header {
+    font-weight: bold;
+  }
+  .permissions {
+    margin-left: 20px;
+  }
+</style>
+<script>
+  let allResources = [];
+  let resourcePermissionsMap = {}; // resourceId -> list of ResourcePermission objects
+
+  // Load roles into dropdown
+  async function loadRoles() {
+    const res = await fetch('/api/roles');
+    const roles = await res.json();
+    const roleSelect = document.getElementById('roleSelect');
+    roles.forEach(r => {
+      const option = document.createElement('option');
+      option.value = r.roleKey;
+      option.text = r.roleName;
+      roleSelect.appendChild(option);
+    });
+  }
+
+  // Load all resources and permissions
+  async function loadResourcesAndPermissions() {
+    const res = await fetch('/api/resources');
+    const resources = await res.json();
+    allResources = resources;
+
+    // For each resource, fetch its permissions
+    for (const resource of resources) {
+      const permsRes = await fetch(`/api/resourcepermissions?resourceId=${resource.resourceKey}`);
+      const perms = await permsRes.json();
+      resourcePermissionsMap[resource.resourceKey] = perms;
+    }
+    renderResourcesAndPermissions();
+  }
+
+  // Render resources and their permissions
+  function renderResourcesAndPermissions() {
+    const container = document.getElementById('resourcesPermissionsContainer');
+    container.innerHTML = '';
+
+    allResources.forEach(resource => {
+      const resourceDiv = document.createElement('div');
+      resourceDiv.className = 'resource';
+
+      const headerDiv = document.createElement('div');
+      headerDiv.className = 'resource-header';
+      headerDiv.innerText = resource.resourceName;
+      resourceDiv.appendChild(headerDiv);
+
+      const perms = resourcePermissionsMap[resource.resourceKey];
+
+      const permsDiv = document.createElement('div');
+      permsDiv.className = 'permissions';
+
+      perms.forEach(p => {
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = 'perm_' + p.resourcePermissionKey;
+        checkbox.value = p.resourcePermissionKey + '|' + resource.resourceKey; // store both
+
+        const label = document.createElement('label');
+        label.htmlFor = 'perm_' + p.resourcePermissionKey;
+        label.innerText = p.permission.permissionName;
+
+        const pDiv = document.createElement('div');
+        pDiv.appendChild(checkbox);
+        pDiv.appendChild(label);
+        permsDiv.appendChild(pDiv);
+      });
+
+      resourceDiv.appendChild(permsDiv);
+      container.appendChild(resourceDiv);
+    });
+  }
+
+  // Save associations: gather selected permissions with resource keys
+  async function saveAssociations() {
+    const roleId = document.getElementById('roleSelect').value;
+    const userId = document.getElementById('userId').value;
+
+    const checkboxes = document.querySelectorAll('.permissions input[type=checkbox]');
+    const selectedResourcePermissionKeys = [];
+
+    checkboxes.forEach(cb => {
+      if (cb.checked) {
+        // value format: resourcePermissionKey|resourceKey
+        const [rpKey, resourceKey] = cb.value.split('|').map(Number);
+        selectedResourcePermissionKeys.push(rpKey);
+      }
+    });
+
+    if (selectedResourcePermissionKeys.length === 0) {
+      alert('Please select at least one permission.');
+      return;
+    }
+
+    // Payload to send: roleId, resourcePermissionKeys, userId
+    const payload = {
+      roleId: parseInt(roleId),
+      resourcePermissionIds: selectedResourcePermissionKeys,
+      userId: userId
+    };
+
+    const res = await fetch('/api/rolepermissions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (res.ok) {
+      alert('Permissions assigned successfully.');
+    } else {
+      alert('Error during assignment.');
+    }
+  }
+
+  window.onload = () => {
+    loadRoles();
+    loadResourcesAndPermissions();
+  };
+</script>
+</head>
+<body>
+<h2>Assign Role to Permissions per Resources</h2>
+
+<label for="roleSelect">Select Role:</label>
+<select id="roleSelect" required></select><br /><br />
+
+<label for="userId">Your User ID:</label>
+<input type="text" id="userId" required/><br /><br />
+
+<div id="resourcesPermissionsContainer" style="max-height: 500px; overflow-y: auto; border: 1px solid #000; padding: 10px;">
+  <!-- Resources and permissions will load here -->
+</div><br />
+
+<button onclick="saveAssociations()">Save Role-Permissions</button>
+</body>
+</html>
