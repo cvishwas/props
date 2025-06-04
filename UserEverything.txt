@@ -1,0 +1,192 @@
+public class UserDataDTO {
+    public String organizationName;
+    public List<RoleDTO> roles;
+    public Map<String, List<ResourceWithPermissionsDTO>> resourcesByType; // key: ResourceTypeName
+
+    // constructors, getters, setters...
+}
+
+public class RoleDTO {
+    public String roleName;
+    public List<ResourcePermissionsDTO> resourcePermissions;
+}
+
+public class ResourcePermissionsDTO {
+    public String resourceName;
+    public List<String> permissionNames;
+}
+
+public class ResourceWithPermissionsDTO {
+    public Long resourceId;
+    public String resourceName;
+    public String resourceTypeName;
+    public List<PermissionDTO> permissions;
+}
+
+public class PermissionDTO {
+    public Long permissionId;
+    public String permissionName;
+}
+
+public class UserDataService {
+
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private RoleRepository roleRepository;
+    @Autowired
+    private UserRoleRepository userRoleRepository;
+    @Autowired
+    private ResourcePermissionRepository resourcePermissionRepository;
+    @Autowired
+    private ResourceRepository resourceRepository;
+    @Autowired
+    private OrganizationRepository organizationRepository;
+
+    public UserDataDTO getUserDataByLoginId(String loginId) {
+        User user = userRepository.findByUserLoginId(loginId)
+                        .orElseThrow(() -> new RuntimeException("User not found"));
+
+        String orgName = user.getOrganization().getName();
+
+        // Get roles
+        List<Role> roles = roleRepository.findRolesByUser(user.getUserKey());
+        List<RoleDTO> roleDTOs = new ArrayList<>();
+        for (Role role : roles) {
+            RoleDTO roleDTO = new RoleDTO();
+            roleDTO.roleName = role.getRoleName();
+
+            List<ResourcePermission> rps = resourcePermissionRepository.findByRole(role.getRoleKey());
+            Set<Long> resourceIds = new HashSet<>();
+            Map<Long, List<String>> resourcePermissionsMap = new HashMap<>();
+
+            for (ResourcePermission rp : rps) {
+                resourceIds.add(rp.getResource().getResourceKey());
+                resourcePermissionsMap
+                    .computeIfAbsent(rp.getResource().getResourceKey(), k -> new ArrayList<>())
+                    .add(rp.getPermission().getPermissionName());
+            }
+
+            // For each resource, gather resource info
+            List<ResourceWithPermissionsDTO> resourceList = new ArrayList<>();
+            for (Long resId : resourceIds) {
+                Resource res = resourceRepository.findById(resId).get();
+                ResourceWithPermissionsDTO resDTO = new ResourceWithPermissionsDTO();
+                resDTO.resourceId = resId;
+                resDTO.resourceName = res.getResourceName();
+                resDTO.resourceTypeName = res.getResourceType().getResourceTypeName();
+                resDTO.permissions = resourcePermissionsMap.get(resId).stream()
+                        .map(pname -> {
+                            PermissionDTO pDTO = new PermissionDTO();
+                            // Find permissionId from permission name if needed
+                            // For simplicity, assume permissionId is known or fetched
+                            pDTO.permissionName = pname;
+                            return pDTO;
+                        }).collect(Collectors.toList());
+                resourceList.add(resDTO);
+            }
+
+            roleDTO.resourcePermissions = resourceList;
+            roleDTOs.add(roleDTO);
+        }
+
+        // Group resources by resource type
+        Map<String, List<ResourceWithPermissionsDTO>> resourcesByType = new HashMap<>();
+        for (RoleDTO role : roleDTOs) {
+            for (ResourceWithPermissionsDTO res : role.resourcePermissions) {
+                resourcesByType
+                    .computeIfAbsent(res.resourceTypeName, k -> new ArrayList<>())
+                    .add(res);
+            }
+        }
+
+        UserDataDTO dto = new UserDataDTO();
+        dto.organizationName = orgName;
+        dto.roles = roleDTOs;
+        dto.resourcesByType = resourcesByType;
+
+        return dto;
+    }
+}
+
+@RequestMapping("/api")
+public class UserDataController {
+
+    @Autowired
+    private UserDataService userDataService;
+
+    @GetMapping("/userdata")
+    public ResponseEntity<UserDataDTO> getUserData(@RequestParam String loginId) {
+        try {
+            UserDataDTO data = userDataService.getUserDataByLoginId(loginId);
+            return ResponseEntity.ok(data);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        }
+    }
+}
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>User Data Viewer</title>
+<script>
+async function fetchUserData() {
+  const loginId = document.getElementById('loginId').value;
+  const response = await fetch('/api/userdata?loginId=' + encodeURIComponent(loginId));
+  if (!response.ok) {
+    alert('User not found');
+    return;
+  }
+  const data = await response.json();
+  displayUserData(data);
+}
+
+function displayUserData(data) {
+  const container = document.getElementById('userData');
+  container.innerHTML = '';
+
+  // Organization Name
+  const orgDiv = document.createElement('div');
+  orgDiv.innerHTML = '<h3>Organization: ' + data.organizationName + '</h3>';
+  container.appendChild(orgDiv);
+
+  // Roles
+  data.roles.forEach(role => {
+    const roleDiv = document.createElement('div');
+    roleDiv.innerHTML = '<h4>Role: ' + role.roleName + '</h4>';
+
+    // Resources grouped by ResourceType
+    for (const [resType, resources] of Object.entries(data.resourcesByType)) {
+      const resTypeDiv = document.createElement('div');
+      resTypeDiv.innerHTML = '<strong>Resource Type: ' + resType + '</strong>';
+
+      resources.filter(r => r.resourceTypeName === resType).forEach(res => {
+        const resDiv = document.createElement('div');
+        resDiv.innerHTML = '<em>Resource: ' + res.resourceName + '</em>';
+
+        // List permissions
+        res.permissions.forEach(p => {
+          const pDiv = document.createElement('div');
+          pDiv.innerText = '- ' + p.permissionName;
+          resDiv.appendChild(pDiv);
+        });
+        resTypeDiv.appendChild(resDiv);
+      });
+      roleDiv.appendChild(resTypeDiv);
+    }
+
+    container.appendChild(roleDiv);
+  });
+}
+</script>
+</head>
+<body>
+<h2>User Data Viewer</h2>
+<label for="loginId">Enter User Login ID:</label>
+<input type="text" id="loginId" />
+<button onclick="fetchUserData()">Get User Data</button>
+
+<div id="userData"></div>
+</body>
+</html>
