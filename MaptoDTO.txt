@@ -1,0 +1,23 @@
+import java.util.stream.Collectors;
+
+public List<ResourcePermissionDTO> convertMapToDTOs(Map<Long, List<Permission>> resourcePermissionsMap, ResourceRepository resourceRepository) {
+    List<ResourcePermissionDTO> dtoList = new ArrayList<>();
+
+    for (Map.Entry<Long, List<Permission>> entry : resourcePermissionsMap.entrySet()) {
+        Long resourceId = entry.getKey();
+        List<Permission> permissions = entry.getValue();
+
+        // Fetch Resource by resourceId
+        Resource resource = resourceRepository.findById(resourceId)
+                                .orElseThrow(() -> new RuntimeException("Resource not found with ID: " + resourceId));
+
+        // Create DTO
+        ResourcePermissionDTO dto = new ResourcePermissionDTO();
+        dto.setResource(resource);
+        dto.setPermissionList(permissions);
+
+        dtoList.add(dto);
+    }
+
+    return dtoList;
+}
