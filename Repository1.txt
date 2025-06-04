@@ -1,0 +1,74 @@
+import com.example.organization.model.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+
+@Repository
+public interface UserRepository extends JpaRepository<User, Long> {
+    Optional<User> findByUserLoginId(String userLoginId);
+}
+
+import com.example.organization.model.Role;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface RoleRepository extends JpaRepository<Role, Long> {
+    // Additional custom methods if needed
+}
+
+import com.example.organization.model.UserRole;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface UserRoleRepository extends JpaRepository<UserRole, Long> {
+    // Custom query to find roles by user
+    // (Assuming a method like this exists in the service)
+}
+
+import com.example.organization.model.Resource;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface ResourceRepository extends JpaRepository<Resource, Long> {
+}
+
+import com.example.organization.model.ResourcePermission;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface ResourcePermissionRepository extends JpaRepository<ResourcePermission, Long> {
+    List<ResourcePermission> findByResourceResourceKey(Long resourceKey);
+    ResourcePermission findByResourceResourceKeyAndPermissionPermissionKey(Long resourceKey, Long permissionKey);
+}
+
+import com.example.organization.model.RolePermission;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface RolePermissionRepository extends JpaRepository<RolePermission, Long> {
+    // Additional custom methods if needed
+}
+
+import com.example.organization.model.Organization;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface OrganizationRepository extends JpaRepository<Organization, Long> {
+}
+
+import com.example.organization.model.Permission;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface PermissionRepository extends JpaRepository<Permission, Long> {
+}
