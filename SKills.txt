@@ -1,0 +1,17 @@
+Kafka
+Proficient in designing and implementing real-time data streaming solutions using Apache Kafka.**
+Optimized Kafka performance through partitioning strategies, replication, and tuning configurations.**
+Ensured data durability and fault tolerance through effective Kafka cluster management and monitoring.**
+
+Angular
+Built reusable Angular components, directives, and services to enhance application modularity and maintainability.**
+Integrated RESTful APIs and WebSocket services for real-time data updates.
+Followed Angular best practices, including lazy loading, Ahead-of-Time (AOT) compilation
+Optimized application performance through efficient change detection and code splitting.
+
+Java - JDK 17
+Developed scalable backend services and REST APIs using Java frameworks such as Spring Boot and Jakarta EE.
+Implemented secure authentication and authorization mechanisms using Spring Security.
+Worked with relational databases - Oracle  for data persistence.
+Utilized build tools like Maven and Jenkins for project automation and dependency management.
+Developed Microservices and implemented Docker containerization, and cloud deployment.
