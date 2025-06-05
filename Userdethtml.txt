@@ -1,0 +1,78 @@
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Retrieve User Details</title>
+<script>
+async function fetchUserDetails() {
+    const loginId = document.getElementById('userLoginId').value.trim();
+    if (!loginId) {
+        alert('Please enter a User Login ID.');
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/userdata?loginId=${encodeURIComponent(loginId)}`);
+        if (!response.ok) {
+            alert('User not found or error fetching data.');
+            document.getElementById('userDetails').innerHTML = '';
+            return;
+        }
+        const data = await response.json();
+        displayUserData(data);
+    } catch (error) {
+        console.error('Error fetching user data:', error);
+        alert('Error fetching user data.');
+    }
+}
+
+function displayUserData(data) {
+    const container = document.getElementById('userDetails');
+    container.innerHTML = '';
+
+    // Organization
+    const orgDiv = document.createElement('div');
+    orgDiv.innerHTML = `<h3>Organization: ${data.organizationName}</h3>`;
+    container.appendChild(orgDiv);
+
+    // Roles
+    data.roles.forEach(role => {
+        const roleDiv = document.createElement('div');
+        roleDiv.innerHTML = `<h4>Role: ${role.roleName}</h4>`;
+
+        // Resources grouped by ResourceType
+        for (const [resType, resources] of Object.entries(data.resourcesByType)) {
+            const resTypeDiv = document.createElement('div');
+            resTypeDiv.innerHTML = `<strong>Resource Type: ${resType}</strong>`;
+
+            // Filter resources by this resource type
+            resources.filter(r => r.resourceTypeName === resType).forEach(res => {
+                const resDiv = document.createElement('div');
+                resDiv.innerHTML = `<em>Resource: ${res.resourceName}</em>`;
+
+                // List permissions
+                res.permissions.forEach(p => {
+                    const pDiv = document.createElement('div');
+                    pDiv.innerText = `- ${p.permissionName}`;
+                    resDiv.appendChild(pDiv);
+                });
+                resTypeDiv.appendChild(resDiv);
+            });
+            roleDiv.appendChild(resTypeDiv);
+        }
+
+        container.appendChild(roleDiv);
+    });
+}
+</script>
+</head>
+<body>
+<h2>Retrieve User Details</h2>
+<label for="userLoginId">Enter User Login ID:</label>
+<input type="text" id="userLoginId" />
+<button onclick="fetchUserDetails()">Get Details</button>
+
+<div id="userDetails" style="margin-top:20px; border:1px solid #ccc; padding:10px; max-width:800px; overflow:auto;">
+<!-- User details will be displayed here -->
+</div>
+</body>
+</html>
