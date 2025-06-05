@@ -1,0 +1,141 @@
+Certainly! Here's a comprehensive documentation for all the core services within the Entitlement Microservice. This covers their purpose, input parameters, main functionalities, and expected outputs.
+
+Entitlement Microservice - Service Documentation
+
+1. UserService
+
+Purpose
+Manage user-related operations, including fetching user details, creating new users, and retrieving users by login ID.
+
+Main Methods
+
+Optional getUser(Long userKey)**
+  Fetches a user by their primary key.
+
+User createUser(User user, String userId)**
+  Creates a new user, setting audit fields (insertUserId, timestamps).
+
+List getAllUsers()**
+  Retrieves all users.
+
+Optional findByUserLoginId(String loginId)**
+  Finds a user by their login ID.
+
+2. RoleService
+
+Purpose
+Manage roles, including creation, retrieval, and listing.
+
+Main Methods
+
+List getAllRoles()**
+  Retrieves all roles.
+
+Optional getRole(Long roleId)**
+  Fetches a role by its ID.
+
+Role createRole(Role role, String userId)**
+  Creates a new role with audit info.
+
+3. UserRoleService
+
+Purpose
+Manage user-role associations, including assigning roles to users and retrieving roles for a user.
+
+Main Methods
+
+void assignRolesToUser(Long userId, List roleIds, String userId)**
+  Assigns multiple roles to a user, setting audit fields.
+
+List getRolesByUser(Long userId)**
+  Retrieves roles assigned to a specific user.
+
+4. ResourceService
+
+Purpose
+Handle resource management, including listing all resources and creating new resources.
+
+Main Methods
+
+List getAllResources()**
+  Fetches all resources.
+
+Resource createResource(Resource resource, String userId)**
+  Creates a new resource with audit info.
+
+5. ResourcePermissionService
+
+Purpose
+Manage resource-permission associations, including fetching, creating, and retrieving permissions for resources.
+
+Main Methods
+
+List getAllResourcePermissions()**
+  Fetches all resource-permission entries.
+
+List getPermissionsByResource(Long resourceId)**
+  Fetches permissions for a specific resource.
+
+ResourcePermission createResourcePermission(Long resourceId, Long permissionId, String userId)**
+  Creates a new resource-permission linking resource and permission.
+
+ResourcePermission findByResourceAndPermission(Long resourceId, Long permissionId)**
+  Fetches a specific ResourcePermission by resource and permission IDs.
+
+6. RolePermissionService
+
+Purpose
+Manage role-permission associations, including assigning permissions to roles and listing such associations.
+
+Main Methods
+
+void assignPermissionsToRole(Long roleId, List resourcePermissionIds, String userId)**
+  Assigns multiple resource permissions to a role.
+
+List getAllRolePermissions()**
+  Fetches all role-permission links.
+
+List getPermissionsByRole(Long roleId)**
+  Lists permissions associated with a role.
+
+7. OrganizationService
+
+Purpose
+Handle organization-related operations, like listing organizations and creating new ones.
+
+Main Methods
+
+List getAllOrganizations()**
+  List all organizations.
+
+Organization createOrganization(Organization org, String userId)**
+  Create a new organization with audit info.
+
+8. PermissionService
+
+Purpose
+Manage permissions including listing and creating permissions.
+
+Main Methods
+
+List getAllPermissions()**
+  List all permissions.
+
+Permission createPermission(Permission permission, String userId)**
+  Create a new permission.
+
+9. UserDataService (Complex User Data Retrieval)
+
+Purpose
+Gathers comprehensive user data including roles, resources, permissions, and organization info.
+
+Main Method
+
+UserDataDTO getUserDataByLoginId(String loginId)**
+  Returns structured user data for display, including organization name, roles, resources grouped by type, and permissions.
+
+Summary
+
+This documentation provides a high-level overview of all core services within the Entitlement Microservice. Each service encapsulates specific domain logic, facilitating modularity and maintainability.
+
+Would you like detailed method signatures, class diagrams, or sample code snippets for any specific service?
