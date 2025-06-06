@@ -1,0 +1,43 @@
+Certainly! Here's how you can implement a delete (deactivate) functionality for users, which sets their ACTIVE_FLAG to 'N' (or false equivalent).
+
+1. Backend Service Method
+
+Create a method in your UserService:
+
+public void deactivateUserByLoginId(String loginId, String userId) {
+    User user = userRepository.findByUserLoginId(loginId)
+                    .orElseThrow(() -> new RuntimeException("User not found with login ID: " + loginId));
+    user.setActiveFlag("N"); // or false if boolean
+    user.setLastUpdateTsp(new Timestamp(System.currentTimeMillis()));
+    user.setLastUpdateUserId(userId);
+    userRepository.save(user);
+}
+
+2. Controller Endpoint
+
+Add an endpoint to your UserController:
+
+@DeleteMapping("/deactivate")
+public ResponseEntity deactivateUser(@RequestParam String loginId, @RequestParam String userId) {
+    try {
+        userService.deactivateUserByLoginId(loginId, userId);
+        return ResponseEntity.ok("User deactivated successfully.");
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+    }
+}
+
+3. Usage
+
+Call via HTTP:
+
+DELETE /api/users/deactivate?loginId=user123&userId=admin
+
+4. Summary
+
+Finds user by login ID
+Sets ACTIVE_FLAG to 'N'
+Updates last update timestamp and user ID
+Saves the user
+
+Would you like me to generate a sample front-end button or form to trigger this API?
