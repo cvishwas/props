@@ -1,0 +1,18 @@
+Design:
+
+Pre-Configured: The entities above the dotted line are entitlement definitions which are pre-configured by BBH and provided to the client.
+
+Customizable: The entities below the dotted line are customizable by the client according to their needs. 
+
+Pre-configured Entitlement Definitions:
+
+Organization : Organization to which entitlements are being defined.
+Resource: Applications/Modules for which entitlements are being defined.
+Resource Type: Resource could be of any type like Web Application, Dataset etc.
+Permission: Each Resource has a set of permissions/actions that can be performed.
+
+Customizable:
+
+1. Roles/User Group: These are groups of Permissions belonging to one or more Resources for the Organization. Client Admin/Super User can create Roles/User Groups as required.
+
+2. User: User can be assigned to one or more groups.
