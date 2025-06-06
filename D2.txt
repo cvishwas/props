@@ -1,0 +1,26 @@
+Certainly! Here's an improved and more polished version of your write-up, enhancing clarity, consistency, and professionalism:
+
+Design Overview
+
+Pre-Configured Entities:
+Entities positioned above the dotted line represent entitlement definitions that are pre-configured by BBH and provided to the client. These serve as foundational building blocks for access management.
+
+Customizable Entities:
+Entities below the dotted line are fully customizable by the client, allowing them to tailor access controls to their specific organizational needs.
+
+Pre-Configured Entitlement Definitions
+
+Organization:** The organizational unit for which entitlements are being defined.
+Resource:** The applications or modules (e.g., Web Applications, Datasets) for which access rights are being established.
+Resource Type:** The category of the resource, such as Web Application, Dataset, etc.
+Permission:** Specific actions or operations that can be performed on a resource, defining the level of access.
+
+Customizable Components
+
+Roles/User Groups:
+   These are collections of permissions associated with one or more resources within the organization. The Client Admin or Super User has the ability to create, modify, and manage roles or user groups as needed.
+
+User:
+   Individual users can be assigned to one or more roles or groups, enabling flexible and granular access control.
+
+Would you like me to add more details or visual aids to this documentation?
