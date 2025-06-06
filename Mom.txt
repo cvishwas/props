@@ -1,0 +1,19 @@
+ETF Connect Project: New SAS Product Development
+- Development of a new SAS product, ETF Connect, for client UNB.
+- Project involves creating a separate instance of existing ETF applications, excluding BBH shared services components.
+- Focus is on building roles and entitlements as a self-service component for UNB's access to basket creation, order taking, and order settlement applications.
+
+Role and Permission Structure for ETF Connect
+- New application will utilize role groups and user groups to manage permissions.
+- Features include user group selection, permission association, and a superuser export functionality for compliance.
+- Discussions focus on best practices for role design, including least privilege access and toxic combinations to prevent conflicts of interest.
+
+User Experience and Compliance Considerations
+- Emphasis on clear, business-friendly language in role descriptions for user understanding and reduced security risks.
+- Importance of collaboration with business users to review and optimize existing roles before mirroring them in the new product.
+- Discussions include compliance requirements, annual attestations, and the need for user-friendly reports for access control.
+
+Authentication and Entitlement Management
+- UNB's admin users will manage user authentication and entitlements.
+- Two-layer authentication process: UNB platform validation followed by BBH authorization.
+- ETF Admin will manage entitlements within the BBH system, providing UNB with selectable options for user assignment.
