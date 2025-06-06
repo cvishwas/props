@@ -1,0 +1,36 @@
+kind: DeploymentConfig
+metadata:
+  name: entitlement
+spec:
+  replicas: 1
+  selector:
+    app: entitlement
+  template:
+    metadata:
+      labels:
+        app: entitlement
+    spec:
+      containers:
+        - name: entitlement
+          image: your-dockerhub-username/your-app:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:oracle:thin:@//host:port/service
+            - name: SPRING_DATASOURCE_USERNAME
+              value: your_db_username
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: your_db_password
+            # add any other env vars needed
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: entitlement
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: entitlement
