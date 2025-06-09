@@ -1,0 +1,150 @@
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Create User with Roles</title>
+<script>
+async function loadRoles() {
+    const res = await fetch('/api/roles');
+    const roles = await res.json();
+    const rolesDiv = document.getElementById('rolesDiv');
+    roles.forEach(role => {
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = 'role_' + role.roleKey;
+        checkbox.value = role.roleKey;
+
+        const label = document.createElement('label');
+        label.htmlFor = 'role_' + role.roleKey;
+        label.innerText = role.roleName;
+
+        const div = document.createElement('div');
+        div.appendChild(checkbox);
+        div.appendChild(label);
+        rolesDiv.appendChild(div);
+    });
+}
+
+async function submitForm() {
+    const firstName = document.getElementById('firstName').value.trim();
+    const lastName = document.getElementById('lastName').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const currentUserId = document.getElementById('currentUserId').value.trim();
+
+    // Collect selected roles
+    const checkboxes = document.querySelectorAll('#rolesDiv input[type=checkbox]');
+    const roleIds = [];
+    checkboxes.forEach(cb => {
+        if (cb.checked) roleIds.push(parseInt(cb.value));
+    });
+
+    if (roleIds.length === 0) {
+        alert('Please select at least one role.');
+        return;
+    }
+
+    // Create request payload
+    const data = {
+        firstName,
+        lastName,
+        email,
+        roleIds,
+        currentUserId
+    };
+
+    // Send POST request
+    const response = await fetch('/api/create-with-roles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    });
+
+    if (response.ok) {
+        alert('User created and roles assigned successfully.');
+        // Optionally reset form
+        document.getElementById('userForm').reset();
+        document.querySelectorAll('#rolesDiv input[type=checkbox]').forEach(cb => cb.checked = false);
+    } else {
+        alert('Error creating user.');
+    }
+}
+
+window.onload = () => {
+    loadRoles();
+};
+</script>
+</head>
+<body>
+<h2>Create User and Assign Roles</h2>
+<form id="userForm" onsubmit="event.preventDefault(); submitForm();">
+    <label>First Name:</label><br />
+    <input type="text" id="firstName" required /><br /><br />
+
+    <label>Last Name:</label><br />
+    <input type="text" id="lastName" required /><br /><br />
+
+    <label>Email:</label><br />
+    <input type="email" id="email" required /><br /><br />
+
+    <label>Your User ID (for audit):</label><br />
+    <input type="text" id="currentUserId" required /><br /><br />
+
+    <h3>Select Roles:</h3>
+    <div id="rolesDiv" style="border:1px solid #ccc; padding:10px; max-height:200px; overflow:auto;">
+        <!-- Roles checkboxes will load here -->
+    </div><br />
+
+    <button type="submit">Create User & Assign Roles</button>
+</form>
+</body>
+</html>
+
+    private String firstName;
+    private String lastName;
+    private String email;
+    private List<Long> roleIds;
+    private String currentUserId;
+
+    // Getters and Setters
+    public String getFirstName() { return firstName; }
+    public void setFirstName(String firstName) { this.firstName = firstName; }
+
+    public String getLastName() { return lastName; }
+    public void setLastName(String lastName) { this.lastName = lastName; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+
+    public List<Long> getRoleIds() { return roleIds; }
+    public void setRoleIds(List<Long> roleIds) { this.roleIds = roleIds; }
+
+    public String getCurrentUserId() { return currentUserId; }
+    public void setCurrentUserId(String currentUserId) { this.currentUserId = currentUserId; }
+}
+
+@RequestMapping("/api")
+public class UserController {
+
+    @Autowired
+    private UserService userService;
+
+    @PostMapping("/create-with-roles")
+    public ResponseEntity<User> createUserWithRoles(@RequestBody CreateUserWithRolesRequest request) {
+        try {
+            User user = new User();
+            user.setFirstName(request.getFirstName());
+            user.setLastName(request.getLastName());
+            user.setEmail(request.getEmail());
+            // Set other user fields if needed
+
+            User createdUser = userService.createUserAndAssignRoles(
+                user,
+                request.getRoleIds(),
+                request.getCurrentUserId()
+            );
+            return ResponseEntity.ok(createdUser);
+        } catch (Exception e) {
+            // Log exception as needed
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+}
