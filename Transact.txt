@@ -1,0 +1,61 @@
+@Service
+public class UserService {
+    
+    @Autowired
+    private UserRepository userRepository;
+    
+    @Autowired
+    private UserRoleRepository userRoleRepository;
+    
+    @Autowired
+    private RoleRepository roleRepository;
+
+    @Transactional
+    public User createUserAndAssignRoles(User user, List<Long> roleIds, String currentUserId) {
+        // Set audit fields
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+        user.setInsertTsp(now);
+        user.setLastUpdateTsp(now);
+        user.setInsertUserId(currentUserId);
+        user.setLastUpdateUserId(currentUserId);
+        user.setActiveFlag("Y");
+        User savedUser = userRepository.save(user);
+
+        // Associate roles
+        for (Long roleId : roleIds) {
+            Role role = roleRepository.findById(roleId)
+                .orElseThrow(() -> new RuntimeException("Role not found with ID: " + roleId));
+            UserRole userRole = new UserRole();
+            userRole.setUser(savedUser);
+            userRole.setRole(role);
+            userRole.setActiveFlag("Y");
+            userRole.setInsertTsp(now);
+            userRole.setLastUpdateTsp(now);
+            userRole.setInsertUserId(currentUserId);
+            userRole.setLastUpdateUserId(currentUserId);
+            userRoleRepository.save(userRole);
+        }
+        return savedUser;
+    }
+}
+
+@PostMapping("/create-with-roles")
+public ResponseEntity<User> createUserWithRoles(@RequestBody CreateUserRequest request) {
+    User user = new User();
+    user.setFirstName(request.getFirstName());
+    user.setLastName(request.getLastName());
+    user.setEmail(request.getEmail());
+    // set other user fields...
+
+    User createdUser = userService.createUserAndAssignRoles(user, request.getRoleIds(), request.getCurrentUserId());
+    return ResponseEntity.ok(createdUser);
+}
+
+    private String firstName;
+    private String lastName;
+    private String email;
+    private List<Long> roleIds;
+    private String currentUserId; // for audit
+
+    // Getters and setters
+}
