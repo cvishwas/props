@@ -1,0 +1,254 @@
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Create Role and Assign Permissions</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+  }
+  .section {
+    margin-bottom: 20px;
+  }
+  #permissionsDiv {
+    border: 1px solid #ccc;
+    padding: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+</style>
+<script>
+let allPermissions = [];
+
+// Load resources into dropdown on page load
+async function loadResources() {
+    const res = await fetch('/api/resources');
+    const resources = await res.json();
+    const resourceSelect = document.getElementById('resourceSelect');
+    resources.forEach(r => {
+        const option = document.createElement('option');
+        option.value = r.resourceKey;
+        option.text = r.resourceName;
+        resourceSelect.appendChild(option);
+    });
+}
+
+// When resource is selected, fetch its permissions
+async function loadPermissions() {
+    const resourceId = document.getElementById('resourceSelect').value;
+    if (!resourceId) return;
+
+    // Clear previous permissions
+    const container = document.getElementById('permissionsDiv');
+    container.innerHTML = '';
+
+    // Fetch permissions for selected resource
+    const response = await fetch(`/api/resourcepermissions?resourceId=${resourceId}`);
+    const perms = await response.json();
+
+    allPermissions = perms; // store for later
+
+    // Display permissions with checkboxes
+    perms.forEach(p => {
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = 'perm_' + p.resourcePermissionKey;
+        checkbox.value = p.resourcePermissionKey;
+
+        const label = document.createElement('label');
+        label.htmlFor = 'perm_' + p.resourcePermissionKey;
+        label.innerText = p.permission.permissionName;
+
+        const div = document.createElement('div');
+        div.appendChild(checkbox);
+        div.appendChild(label);
+        document.getElementById('permissionsDiv').appendChild(div);
+    });
+}
+
+// Submit new role and associate permissions
+async function submitRole() {
+    const roleName = document.getElementById('roleName').value.trim();
+    const userId = document.getElementById('userId').value.trim();
+
+    if (!roleName) {
+        alert('Please enter a role name.');
+        return;
+    }
+
+    // Collect selected permissions
+    const checkboxes = document.querySelectorAll('#permissionsDiv input[type=checkbox]');
+    const selectedPermissions = [];
+    checkboxes.forEach(cb => {
+        if (cb.checked) {
+            selectedPermissions.push(parseInt(cb.value));
+        }
+    });
+
+    if (selectedPermissions.length === 0) {
+        alert('Please select at least one permission.');
+        return;
+    }
+
+    // Prepare payload
+    const data = {
+        roleName: roleName,
+        resourcePermissionIds: selectedPermissions,
+        userId: userId
+    };
+
+    // Send request to create role and assign permissions
+    const response = await fetch('/api/roles/create-with-permissions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    });
+
+    if (response.ok) {
+        alert('Role created and permissions assigned successfully.');
+        // Reset form
+        document.getElementById('roleForm').reset();
+        document.getElementById('permissionsDiv').innerHTML = '';
+    } else {
+        alert('Error creating role.');
+    }
+}
+
+window.onload = () => {
+    loadResources();
+    document.getElementById('resourceSelect').addEventListener('change', loadPermissions);
+};
+</script>
+</head>
+<body>
+<h2>Create Role and Assign Permissions</h2>
+
+<form id="roleForm" onsubmit="event.preventDefault(); submitRole();">
+  <div class="section">
+    <label for="roleName">Role Name:</label><br />
+    <input type="text" id="roleName" required />
+  </div>
+
+  <div class="section">
+    <label for="resourceSelect">Select Resource:</label><br />
+    <select id="resourceSelect" required>
+      <option value="">--Select Resource--</option>
+    </select>
+  </div>
+
+  <div class="section">
+    <h3>Permissions:</h3>
+    <div id="permissionsDiv">
+      <!-- Permissions checkboxes will appear here -->
+    </div>
+  </div>
+
+  <div class="section">
+    <label for="userId">Your User ID (for audit):</label><br />
+    <input type="text" id="userId" required />
+  </div>
+
+  <button type="submit">Create Role & Assign Permissions</button>
+</form>
+</body>
+</html>
+
+    private String roleName;
+    private List<Long> resourcePermissionIds;
+    private String userId;
+
+    // Getters and Setters
+    public String getRoleName() { return roleName; }
+    public void setRoleName(String roleName) { this.roleName = roleName; }
+
+    public List<Long> getResourcePermissionIds() { return resourcePermissionIds; }
+    public void setResourcePermissionIds(List<Long> resourcePermissionIds) { this.resourcePermissionIds = resourcePermissionIds; }
+
+    public String getUserId() { return userId; }
+    public void setUserId(String userId) { this.userId = userId; }
+}
+
+@RequestMapping("/api/roles")
+public class RoleController {
+
+    @Autowired
+    private RoleService roleService;
+
+    @Autowired
+    private RolePermissionService rolePermissionService;
+
+    @PostMapping("/create-with-permissions")
+    public ResponseEntity<Role> createRoleWithPermissions(@RequestBody CreateRoleWithPermissionsRequest request) {
+        try {
+            // Create role
+            Role role = new Role();
+            role.setRoleName(request.getRoleName());
+            // Set other role fields if needed
+
+            Role createdRole = roleService.createRole(role, request.getUserId());
+
+            // Assign permissions
+            rolePermissionService.assignPermissionsToRole(
+                createdRole.getRoleKey(),
+                request.getResourcePermissionIds(),
+                request.getUserId()
+            );
+
+            return ResponseEntity.ok(createdRole);
+        } catch (Exception e) {
+            // Log exception if needed
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+}
+
+public class RoleService {
+
+    @Autowired
+    private RoleRepository roleRepository;
+
+    @Transactional
+    public Role createRole(Role role, String userId) {
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+        role.setInsertTsp(now);
+        role.setLastUpdateTsp(now);
+        role.setInsertUserId(userId);
+        role.setLastUpdateUserId(userId);
+        role.setActiveFlag("Y");
+        return roleRepository.save(role);
+    }
+}
+
+public class RolePermissionService {
+
+    @Autowired
+    private RolePermissionRepository rolePermissionRepository;
+
+    @Autowired
+    private RoleRepository roleRepository;
+
+    @Autowired
+    private ResourcePermissionRepository resourcePermissionRepository;
+
+    @Transactional
+    public void assignPermissionsToRole(Long roleId, List<Long> resourcePermissionIds, String userId) {
+        Role role = roleRepository.findById(roleId)
+            .orElseThrow(() -> new RuntimeException("Role not found with ID: " + roleId));
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+
+        for (Long rpId : resourcePermissionIds) {
+            ResourcePermission rp = resourcePermissionRepository.findById(rpId)
+                .orElseThrow(() -> new RuntimeException("ResourcePermission not found with ID: " + rpId));
+
+            RolePermission rolePerm = new RolePermission();
+            rolePerm.setRole(role);
+            rolePerm.setResourcePermission(rp);
+            rolePerm.setActiveFlag("Y");
+            rolePerm.setInsertTsp(now);
+            rolePerm.setLastUpdateTsp(now);
+            rolePerm.setInsertUserId(userId);
+            rolePerm.setLastUpdateUserId(userId);
+            rolePermissionRepository.save(rolePerm);
+        }
+    }
+}
