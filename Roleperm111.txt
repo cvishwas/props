@@ -1,0 +1,159 @@
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Assign Permissions to Role</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+  }
+  .group {
+    margin-top: 20px;
+    border: 1px solid #ccc;
+    padding: 10px;
+  }
+  .resource-header {
+    font-weight: bold;
+    margin-top: 10px;
+  }
+  .permissions {
+    margin-left: 20px;
+  }
+</style>
+<script>
+let allResources = [];
+let resourcePermissionsMap = {}; // resourceId -> list of permissions
+
+// Load all resources
+async function loadResources() {
+  const res = await fetch('/api/resources');
+  const resources = await res.json();
+  allResources = resources;
+  await loadPermissionsForResources();
+}
+
+// Load permissions for each resource
+async function loadPermissionsForResources() {
+  for (const res of allResources) {
+    const permsRes = await fetch(`/api/resourcepermissions?resourceId=${res.resourceKey}`);
+    const perms = await permsRes.json();
+    resourcePermissionsMap[res.resourceKey] = perms;
+  }
+  renderPermissions();
+}
+
+// Render resources and permissions
+function renderPermissions() {
+  const container = document.getElementById('permissionsContainer');
+  container.innerHTML = '';
+
+  allResources.forEach(res => {
+    const groupDiv = document.createElement('div');
+    groupDiv.className = 'group';
+
+    const header = document.createElement('div');
+    header.className = 'resource-header';
+    header.innerText = res.resourceName;
+    groupDiv.appendChild(header);
+
+    const permsDiv = document.createElement('div');
+    permsDiv.className = 'permissions';
+
+    const perms = resourcePermissionsMap[res.resourceKey] || [];
+    perms.forEach(p => {
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.id = 'perm_' + p.resourcePermissionKey;
+      checkbox.value = p.resourcePermissionKey;
+      
+      const label = document.createElement('label');
+      label.htmlFor = 'perm_' + p.resourcePermissionKey;
+      label.innerText = p.permission.permissionName;
+
+      const permDiv = document.createElement('div');
+      permDiv.appendChild(checkbox);
+      permDiv.appendChild(label);
+      permsDiv.appendChild(permDiv);
+    });
+
+    groupDiv.appendChild(permsDiv);
+    container.appendChild(groupDiv);
+  });
+}
+
+// Submit role creation and permission assignment
+async function submit() {
+  const roleName = document.getElementById('roleName').value.trim();
+  const roleDesc = document.getElementById('roleDesc').value.trim();
+  const userId = document.getElementById('userId').value.trim();
+
+  if (!roleName || !roleDesc || !userId) {
+    alert('Please fill all fields.');
+    return;
+  }
+
+  // Collect selected permissions
+  const checkboxes = document.querySelectorAll('.permissions input[type=checkbox]');
+  const selectedPermissions = [];
+  checkboxes.forEach(cb => {
+    if (cb.checked) {
+      selectedPermissions.push(parseInt(cb.value));
+    }
+  });
+
+  if (selectedPermissions.length === 0) {
+    alert('Select at least one permission.');
+    return;
+  }
+
+  // Prepare payload
+  const data = {
+    roleName: roleName,
+    roleDesc: roleDesc,
+    resourcePermissionIds: selectedPermissions,
+    userId: userId
+  };
+
+  // Send to backend
+  const res = await fetch('/api/roles/create-with-permissions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+
+  if (res.ok) {
+    alert('Role created and permissions assigned successfully.');
+    document.getElementById('roleForm').reset();
+    document.getElementById('permissionsContainer').innerHTML = '';
+  } else {
+    alert('Error occurred.');
+  }
+}
+
+window.onload = () => {
+  loadResources();
+};
+</script>
+</head>
+<body>
+<h2>Create Role and Assign Permissions</h2>
+
+<form id="roleForm" onsubmit="event.preventDefault(); submit();">
+  <label>Role Name:</label><br />
+  <input type="text" id="roleName" required /><br /><br />
+
+  <label>Role Description:</label><br />
+  <textarea id="roleDesc" required></textarea><br /><br />
+
+  <label>Your User ID (for audit):</label><br />
+  <input type="text" id="userId" required /><br /><br />
+
+  <h3>Permissions:</h3>
+  <div id="permissionsContainer" style="max-height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px;">
+    <!-- Permissions will load here -->
+  </div><br />
+
+  <button type="submit">Create Role & Assign Permissions</button>
+</form>
+</body>
+</html>
