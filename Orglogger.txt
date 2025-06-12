@@ -1,0 +1,52 @@
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class OrganizationService {
+
+    private static final Logger logger = LoggerFactory.getLogger(OrganizationService.class);
+
+    @Autowired
+    private OrganizationRepository organizationRepository;
+
+    @Transactional
+    public Organization createOrganization(Organization org, String userId) {
+        try {
+            // Set audit fields
+            org.setInsertTsp(new Timestamp(System.currentTimeMillis()));
+            org.setLastUpdateTsp(org.getInsertTsp());
+            org.setInsertUserId(userId);
+            org.setLastUpdateUserId(userId);
+            // Save organization
+            Organization savedOrg = organizationRepository.save(org);
+            logger.info("Organization created successfully with ORG_KEY: {}", savedOrg.getOrgKey());
+            return savedOrg;
+        } catch (Exception e) {
+            logger.error("Error creating organization for user '{}'", userId, e);
+            throw e; // rethrow to be handled upstream
+        }
+    }
+}
+
+@RequestMapping("/api")
+public class OrganizationController {
+
+    private static final Logger logger = LoggerFactory.getLogger(OrganizationController.class);
+
+    @Autowired
+    private OrganizationService organizationService;
+
+    @PostMapping("/organizations")
+    public ResponseEntity<Organization> createOrganization(@RequestBody Organization org, @RequestParam String userId) {
+        try {
+            logger.info("Received request to create organization by user '{}'", userId);
+            Organization createdOrg = organizationService.createOrganization(org, userId);
+            logger.info("Successfully created organization with ORG_KEY: {}", createdOrg.getOrgKey());
+            return ResponseEntity.ok(createdOrg);
+        } catch (Exception e) {
+            logger.error("Failed to create organization for user '{}'", userId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+}
