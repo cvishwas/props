@@ -1,0 +1,60 @@
+private T data;
+    private Metadata metadata;
+
+    public ApiResponse(T data, boolean success, String description) {
+        this.data = data;
+        this.metadata = new Metadata(success, description);
+    }
+
+    // Getters and setters
+    public T getData() { return data; }
+    public void setData(T data) { this.data = data; }
+
+    public Metadata getMetadata() { return metadata; }
+    public void setMetadata(Metadata metadata) { this.metadata = metadata; }
+
+    public static class Metadata {
+        private boolean success;
+        private String description;
+
+        public Metadata(boolean success, String description) {
+            this.success = success;
+            this.description = description;
+        }
+
+        // Getters and setters
+        public boolean isSuccess() { return success; }
+        public void setSuccess(boolean success) { this.success = success; }
+
+        public String getDescription() { return description; }
+        public void setDescription(String description) { this.description = description; }
+    }
+}
+
+    public AccessDeniedException(String message) {
+        super(message);
+    }
+}
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleAccessDenied(AccessDeniedException ex) {
+        ApiResponse<Object> response = new ApiResponse<>(Collections.emptyList(), false, "Access Denied");
+        return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
+    }
+
+    // You can add handlers for other exceptions as needed
+}
+
+public ResponseEntity<?> getResource() {
+    if (!hasAccess()) {
+        throw new AccessDeniedException("User does not have permission");
+    }
+    // ... fetch data
+}
