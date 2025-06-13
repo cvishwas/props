@@ -1,0 +1,26 @@
+Y("Active"),
+    N("Inactive");
+
+    private final String description;
+
+    ActiveFlag(String description) {
+        this.description = description;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+}
+
+@Entity
+public class User {
+    // other fields...
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "ACTIVE_FLAG")
+    private ActiveFlag activeFlag;
+
+    // getters and setters
+    public ActiveFlag getActiveFlag() { return activeFlag; }
+    public void setActiveFlag(ActiveFlag activeFlag) { this.activeFlag = activeFlag; }
+}
