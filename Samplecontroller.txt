@@ -1,0 +1,23 @@
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class SampleController {
+
+    @GetMapping("/protected-resource")
+    public ResponseEntity<?> getProtectedResource() {
+        if (!hasAccess()) {
+            throw new AccessDeniedException("User does not have permission");
+        }
+        // If access granted, return actual data
+        String data = "Sensitive Data";
+        ApiResponse<String> response = new ApiResponse<>(data, true, "Success");
+        return ResponseEntity.ok(response);
+    }
+
+    // Dummy access check
+    private boolean hasAccess() {
+        // Implement your access logic here
+        return false; // For demonstration, always deny
+    }
+}
