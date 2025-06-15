@@ -1,0 +1,156 @@
+package com.example.pdfmicroservice.entity;
+
+import jakarta.persistence.*;
+
+@Entity
+public class ClientRecord {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String fullName;
+    private String email;
+
+    // Constructors, getters, setters
+    public ClientRecord() {}
+
+    public ClientRecord(String fullName, String email) {
+        this.fullName = fullName;
+        this.email = email;
+    }
+
+    public Long getId() { return id; }
+    public String getFullName() { return fullName; }
+    public void setFullName(String fullName) { this.fullName = fullName; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+}
+
+package com.example.pdfmicroservice.repository;
+
+import com.example.pdfmicroservice.entity.ClientRecord;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface ClientRecordRepository extends JpaRepository<ClientRecord, Long> {
+}
+
+package com.example.pdfmicroservice.service;
+
+import com.example.pdfmicroservice.entity.ClientRecord;
+import com.example.pdfmicroservice.repository.ClientRecordRepository;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import javax.annotation.PostConstruct;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.*;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+@Service
+public class PdfProcessingService {
+
+    @Value("${watch.folder.path}")
+    private String watchFolderPath;
+
+    @Value("${user.base.folder.path}")
+    private String userBaseFolderPath;
+
+    private final ClientRecordRepository repository;
+
+    public PdfProcessingService(ClientRecordRepository repository) {
+        this.repository = repository;
+    }
+
+    @PostConstruct
+    public void init() {
+        // Create directories if not exist
+        new File(watchFolderPath).mkdirs();
+        new File(userBaseFolderPath).mkdirs();
+    }
+
+    public void pollFolder() {
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(watchFolderPath), "*.pdf")) {
+            for (Path entry : stream) {
+                processPdf(entry.toFile());
+                // Optionally, move processed file
+                // Files.move(entry, Paths.get(watchFolderPath, "processed", entry.getFileName().toString()), StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void processPdf(File pdfFile) {
+        try (PDDocument document = PDDocument.load(pdfFile)) {
+            PDFTextStripper stripper = new PDFTextStripper();
+            String text = stripper.getText(document);
+
+            // Extract name and email with regex
+            String fullName = extractPattern(text, "Name:\\s*(.+)");
+            String email = extractPattern(text, "Email:\\s*([\\w.-]+@[\\w.-]+)");
+
+            if (fullName != null && email != null) {
+                // Save to DB
+                ClientRecord record = new ClientRecord(fullName, email);
+                repository.save(record);
+
+                // Create user folder
+                String dateStr = LocalDate.now().format(DateTimeFormatter.ofPattern("MMddyy"));
+                String folderName = fullName + "_" + dateStr;
+                Path userFolder = Paths.get(userBaseFolderPath, folderName);
+                Files.createDirectories(userFolder);
+
+                // Move PDF
+                Path targetPath = userFolder.resolve(pdfFile.getName());
+                Files.move(pdfFile.toPath(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+            } else {
+                System.out.println("Could not extract client details from " + pdfFile.getName());
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private String extractPattern(String text, String regex) {
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(text);
+        if (matcher.find()) {
+            return matcher.group(1).trim();
+        }
+        return null;
+    }
+}
+
+package com.example.pdfmicroservice.config;
+
+import com.example.pdfmicroservice.service.PdfProcessingService;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+@Component
+public class FolderPoller {
+
+    private final PdfProcessingService pdfProcessingService;
+
+    public FolderPoller(PdfProcessingService pdfProcessingService) {
+        this.pdfProcessingService = pdfProcessingService;
+    }
+
+    @Scheduled(fixedDelayString = "${poll.interval.ms}")
+    public void poll() {
+        pdfProcessingService.pollFolder();
+    }
+}
+
+user.base.folder.path=/path/to/users
+poll.interval.ms=10000  # 10 seconds
