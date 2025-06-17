@@ -1,0 +1,65 @@
+Y("Active"),
+    N("Inactive");
+
+    private final String description;
+
+    ActiveFlag(String description) {
+        this.description = description;
+    }
+
+    /**
+     * Returns the descriptive string for the enum value.
+     * @return description string
+     */
+    public String getDescription() {
+        return description;
+    }
+
+    /**
+     * Converts a string to the corresponding ActiveFlag enum.
+     * @param value the string value ("Y" or "N")
+     * @return ActiveFlag enum
+     * @throws IllegalArgumentException if no matching enum found
+     */
+    public static ActiveFlag fromString(String value) {
+        for (ActiveFlag flag : ActiveFlag.values()) {
+            if (flag.name().equalsIgnoreCase(value) || flag.name().equalsIgnoreCase(value.trim())) {
+                return flag;
+            }
+        }
+        throw new IllegalArgumentException("Invalid ActiveFlag value: " + value);
+    }
+}
+
+    Y("Yes"),
+    N("No");
+
+    private final String description;
+
+    ExternalFlag(String description) {
+        this.description = description;
+    }
+
+    /**
+     * Returns the descriptive string for the enum value.
+     * @return description string
+     */
+    public String getDescription() {
+        return description;
+    }
+
+    /**
+     * Converts a string to the corresponding ExternalFlag enum.
+     * @param value the string value ("Y" or "N")
+     * @return ExternalFlag enum
+     * @throws IllegalArgumentException if no matching enum found
+     */
+    public static ExternalFlag fromString(String value) {
+        for (ExternalFlag flag : ExternalFlag.values()) {
+            if (flag.name().equalsIgnoreCase(value) || flag.name().equalsIgnoreCase(value.trim())) {
+                return flag;
+            }
+        }
+        throw new IllegalArgumentException("Invalid ExternalFlag value: " + value);
+    }
+}
