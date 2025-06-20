@@ -1,0 +1,56 @@
+import static org.junit.jupiter.api.Assertions.*;
+
+import java.sql.Timestamp;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+public class OrganizationServiceTest {
+
+    @Mock
+    private OrganizationRepository organizationRepository;
+
+    @InjectMocks
+    private OrganizationService organizationService;
+
+    private Organization org;
+
+    @BeforeEach
+    public void setup() {
+        MockitoAnnotations.openMocks(this);
+        org = new Organization();
+        org.setOrgKey(1L);
+        org.setOrgName("Test Org");
+    }
+
+    @Test
+    public void testExistsByOrgName_Found() {
+        when(organizationRepository.existsByOrgName("Test Org")).thenReturn(true);
+        boolean exists = organizationService.existsByOrgName("Test Org");
+        assertTrue(exists);
+        verify(organizationRepository, times(1)).existsByOrgName("Test Org");
+    }
+
+    @Test
+    public void testExistsByOrgName_NotFound() {
+        when(organizationRepository.existsByOrgName("Other Org")).thenReturn(false);
+        boolean exists = organizationService.existsByOrgName("Other Org");
+        assertFalse(exists);
+        verify(organizationRepository, times(1)).existsByOrgName("Other Org");
+    }
+
+    @Test
+    public void testCreateOrganization() {
+        when(organizationRepository.save(any(Organization.class))).thenReturn(org);
+        String userId = "admin";
+        Organization result = organizationService.createOrganization(org, userId);
+        assertNotNull(result);
+        assertEquals("Test Org", result.getOrgName());
+        assertEquals("admin", result.getInsertUserId());
+        assertNotNull(result.getInsertTsp());
+        verify(organizationRepository, times(1)).save(org);
+    }
+}
