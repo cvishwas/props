@@ -1,0 +1,48 @@
+LOOKUPS("PortalSettings:lookups"),
+    ORGANIZATION("PortalSettings:organization"),
+    USER("PortalSettings:user"),
+    ROLE("PortalSettings:role"),
+    PERMISSION("PortalSettings:permission"),
+    RESOURCE("PortalSettings:resource"),
+    RESOURCE_TYPE("PortalSettings:resourceType"),
+    // Add more as needed
+    ;
+
+    private final String description;
+
+    MetadataDescription(String description) {
+        this.description = description;
+    }
+
+    /**
+     * Returns the description string for the enum constant.
+     * @return description string
+     */
+    public String getDescription() {
+        return description;
+    }
+}
+
+    PORTAL_APPLICATIONS("PORTAL_APPLICATIONS"),
+    PORTAL_USERS("PORTAL_USERS"),
+    PORTAL_ROLES("PORTAL_ROLES"),
+    PORTAL_PERMISSIONS("PORTAL_PERMISSIONS"),
+    PORTAL_RESOURCES("PORTAL_RESOURCES"),
+    PORTAL_RESOURCE_TYPES("PORTAL_RESOURCE_TYPES"),
+    // Add more lookup names as needed
+    ;
+
+    private final String name;
+
+    LookupName(String name) {
+        this.name = name;
+    }
+
+    /**
+     * Returns the string value of the lookup name.
+     * @return lookup name string
+     */
+    public String getName() {
+        return name;
+    }
+}
