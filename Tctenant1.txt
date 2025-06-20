@@ -1,0 +1,73 @@
+import static org.junit.jupiter.api.Assertions.*;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+public class TenantServiceTest {
+
+    @Mock
+    private TenantRepository tenantRepository;
+
+    @InjectMocks
+    private TenantService tenantService;
+
+    private Tenant tenant;
+
+    @BeforeEach
+    public void setup() {
+        MockitoAnnotations.openMocks(this);
+        tenant = new Tenant();
+        tenant.setId(1L);
+        tenant.setName("Test Tenant");
+    }
+
+    @Test
+    public void testCreateTenant() {
+        when(tenantRepository.save(any(Tenant.class))).thenReturn(tenant);
+        Tenant result = tenantService.createTenant(tenant);
+        assertNotNull(result);
+        assertEquals("Test Tenant", result.getName());
+        verify(tenantRepository, times(1)).save(tenant);
+    }
+
+    @Test
+    public void testGetTenantById_Found() {
+        when(tenantRepository.findById(1L)).thenReturn(Optional.of(tenant));
+        Optional<Tenant> result = tenantService.getTenantById(1L);
+        assertTrue(result.isPresent());
+        assertEquals("Test Tenant", result.get().getName());
+        verify(tenantRepository, times(1)).findById(1L);
+    }
+
+    @Test
+    public void testGetTenantById_NotFound() {
+        when(tenantRepository.findById(2L)).thenReturn(Optional.empty());
+        Optional<Tenant> result = tenantService.getTenantById(2L);
+        assertFalse(result.isPresent());
+        verify(tenantRepository, times(1)).findById(2L);
+    }
+
+    @Test
+    public void testGetAllTenants() {
+        List<Tenant> tenants = Arrays.asList(tenant);
+        when(tenantRepository.findAll()).thenReturn(tenants);
+        List<Tenant> result = tenantService.getAllTenants();
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        verify(tenantRepository, times(1)).findAll();
+    }
+
+    @Test
+    public void testDeleteTenant() {
+        doNothing().when(tenantRepository).deleteById(1L);
+        tenantService.deleteTenant(1L);
+        verify(tenantRepository, times(1)).deleteById(1L);
+    }
+}
