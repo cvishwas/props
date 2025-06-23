@@ -1,0 +1,67 @@
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@Service
+public class RolePermissionService {
+
+    @Autowired
+    private RolePermissionRepository rolePermissionRepository;
+
+    @Autowired
+    private RoleRepository roleRepository;
+
+    @Autowired
+    private ResourcePermissionRepository resourcePermissionRepository;
+
+    /**
+     * Update permissions for a role: add new, remove old, keep existing.
+     * @param roleId the role ID
+     * @param newPermissionIds list of resourcePermissionIds to set
+     * @param userId user performing update
+     */
+    @Transactional
+    public void updateRolePermissions(Long roleId, List<Long> newPermissionIds, String userId) {
+        Role role = roleRepository.findById(roleId)
+            .orElseThrow(() -> new RuntimeException("Role not found"));
+
+        // Fetch existing RolePermissions
+        List<RolePermission> existingRolePerms = rolePermissionRepository.findByRoleRoleKey(roleId);
+        Set<Long> existingPermIds = existingRolePerms.stream()
+            .map(rp -> rp.getResourcePermission().getResourcePermissionKey())
+            .collect(Collectors.toSet());
+
+        Set<Long> newPermIdsSet = newPermissionIds.stream().collect(Collectors.toSet());
+
+        // Permissions to remove
+        List<RolePermission> toRemove = existingRolePerms.stream()
+            .filter(rp -> !newPermIdsSet.contains(rp.getResourcePermission().getResourcePermissionKey()))
+            .collect(Collectors.toList());
+
+        // Permissions to add
+        List<Long> toAddIds = newPermissionIds.stream()
+            .filter(id -> !existingPermIds.contains(id))
+            .collect(Collectors.toList());
+
+        // Remove old permissions
+        for (RolePermission rp : toRemove) {
+            rolePermissionRepository.delete(rp);
+        }
+
+        // Add new permissions
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+        for (Long rpId : toAddIds) {
+            ResourcePermission rp = resourcePermissionRepository.findById(rpId)
+                .orElseThrow(() -> new RuntimeException("ResourcePermission not found: " + rpId));
+            RolePermission newRolePerm = new RolePermission();
+            newRolePerm.setRole(role);
+            newRolePerm.setResourcePermission(rp);
+            newRolePerm.setActiveFlag("Y");
+            newRolePerm.setInsertTsp(now);
+            newRolePerm.setLastUpdateTsp(now);
+            newRolePerm.setInsertUserId(userId);
+            newRolePerm.setLastUpdateUserId(userId);
+            rolePermissionRepository.save(newRolePerm);
+        }
+        // Existing permissions not in new set are left untouched or can be handled as needed
+    }
+}
