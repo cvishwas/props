@@ -1,0 +1,84 @@
+import static org.junit.jupiter.api.Assertions.*;
+
+import java.sql.Timestamp;
+import java.util.Optional;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+// Replace with your actual package name
+// import com.yourcompany.yourproject.service.UserService;
+// import com.yourcompany.yourproject.repository.UserRepository;
+// import com.yourcompany.yourproject.model.User;
+
+public class UserServiceTest {
+
+    @Mock
+    private UserRepository userRepository;
+
+    @InjectMocks
+    private UserService userService;
+
+    private User user;
+
+    @BeforeEach
+    public void setup() {
+        MockitoAnnotations.openMocks(this);
+        user = new User();
+        user.setUserKey(1L);
+        user.setFirstName("John");
+        user.setLastName("Doe");
+        user.setEmail("john.doe@example.com");
+        user.setActiveFlag("Y");
+        user.setInsertTsp(new Timestamp(System.currentTimeMillis()));
+        user.setInsertUserId("admin");
+        user.setLastUpdateTsp(user.getInsertTsp());
+        user.setLastUpdateUserId("admin");
+        user.setUserLoginId("johndoe");
+    }
+
+    @Test
+    public void testCreateUser() {
+        when(userRepository.save(any(User.class))).thenReturn(user);
+        User result = userService.createUser(user, "admin");
+        assertNotNull(result);
+        assertEquals("john.doe@example.com", result.getEmail());
+        verify(userRepository, times(1)).save(user);
+    }
+
+    @Test
+    public void testGetUserById_Found() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        Optional<User> result = userService.getUser(1L);
+        assertTrue(result.isPresent());
+        assertEquals("John", result.get().getFirstName());
+        verify(userRepository, times(1)).findById(1L);
+    }
+
+    @Test
+    public void testGetUserById_NotFound() {
+        when(userRepository.findById(2L)).thenReturn(Optional.empty());
+        Optional<User> result = userService.getUser(2L);
+        assertFalse(result.isPresent());
+        verify(userRepository, times(1)).findById(2L);
+    }
+
+    @Test
+    public void testExistsByUserLoginId_Found() {
+        when(userRepository.existsByUserLoginId("johndoe")).thenReturn(true);
+        boolean exists = userService.existsByUserLoginId("johndoe");
+        assertTrue(exists);
+        verify(userRepository, times(1)).existsByUserLoginId("johndoe");
+    }
+
+    @Test
+    public void testExistsByUserLoginId_NotFound() {
+        when(userRepository.existsByUserLoginId("unknown")).thenReturn(false);
+        boolean exists = userService.existsByUserLoginId("unknown");
+        assertFalse(exists);
+        verify(userRepository, times(1)).existsByUserLoginId("unknown");
+    }
+}
