@@ -1,0 +1,103 @@
+import spock.lang.Subject
+import spock.lang.Title
+import org.mockito.Mock
+import org.mockito.InjectMocks
+import org.mockito.MockitoAnnotations
+import static org.mockito.Mockito.*
+import java.sql.Timestamp
+import java.util.Optional
+
+// Replace with your actual package names
+// import your.package.RoleService
+// import your.package.RoleRepository
+// import your.package.Role
+
+@Title("RoleService Test using Spock")
+class RoleServiceSpec extends Specification {
+
+    @Mock
+    RoleRepository roleRepository
+
+    @Subject
+    RoleService roleService
+
+    def setup() {
+        MockitoAnnotations.openMocks(this)
+        roleService = new RoleService(roleRepository)
+    }
+
+    def "Test createRole"() {
+        given:
+        def role = new Role(
+            roleKey: 1L,
+            roleName: "Admin",
+            roleDesc: "Administrator role",
+            activeFlag: "Y",
+            insertTsp: new Timestamp(System.currentTimeMillis()),
+            insertUserId: "system",
+            lastUpdateTsp: new Timestamp(System.currentTimeMillis()),
+            lastUpdateUserId: "system"
+        )
+
+        when:
+        roleRepository.save(_) >> role
+        def result = roleService.createRole(role, "admin")
+
+        then:
+        result != null
+        result.roleName == "Admin"
+        1 * roleRepository.save(role)
+    }
+
+    def "Test getRole when role exists"() {
+        given:
+        def role = new Role(roleKey: 1L, roleName: "Admin")
+        roleRepository.findById(1L) >> Optional.of(role)
+
+        when:
+        def result = roleService.getRole(1L)
+
+        then:
+        result.isPresent()
+        result.get().roleName == "Admin"
+        1 * roleRepository.findById(1L)
+    }
+
+    def "Test getRole when role does not exist"() {
+        given:
+        roleRepository.findById(2L) >> Optional.empty()
+
+        when:
+        def result = roleService.getRole(2L)
+
+        then:
+        !result.isPresent()
+        1 * roleRepository.findById(2L)
+    }
+
+    def "Test getAllRoles"() {
+        given:
+        def roles = [new Role(roleKey: 1L, roleName: "Admin")]
+        roleRepository.findAll() >> roles
+
+        when:
+        def result = roleService.getAllRoles()
+
+        then:
+        result.size() == 1
+        result[0].roleName == "Admin"
+        1 * roleRepository.findAll()
+    }
+}
+
+    <groupId>org.spockframework</groupId>
+    <artifactId>spock-core</artifactId>
+    <version>2.3-groovy-3.0</version>
+    <scope>test</scope>
+</dependency>
+<dependency>
+    <groupId>org.mockito</groupId>
+    <artifactId>mockito-core</artifactId>
+    <version>3.12.4</version>
+    <scope>test</scope>
+</dependency>
