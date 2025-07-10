@@ -1,0 +1,100 @@
+public class UserDTO {
+    private String id;
+    private String name;
+    private List<String> permissions;
+    private String environment;
+    private List<ServiceLocation> serviceLocations;
+    private Preferences preferences;
+    private String hubName;
+    private WhiteLabel whiteLabel;
+
+    // Constructors, getters, setters...
+}
+
+    private String id;
+    private String value;
+
+    // Constructors, getters, setters...
+}
+Certainly! To remove the static inner classes from your UserDTO, you can create separate top-level classes for each nested structure.
+
+Here's what you should do:
+
+1. Create separate DTO classes
+
+a) UserDTO.java
+
+import java.util.List;
+
+public class UserDTO {
+    private String id;
+    private String name;
+    private List permissions;
+    private String environment;
+    private List serviceLocations;
+    private Preferences preferences;
+    private String hubName;
+    private WhiteLabel whiteLabel;
+
+    // Constructors, getters, setters...
+}
+
+b) ServiceLocation.java
+
+public class ServiceLocation {
+    private String id;
+    private String value;
+
+    // Constructors, getters, setters...
+}
+
+c) Preferences.java
+
+public class Preferences {
+    private String language;
+    private String dateFormat;
+    private String timeFormat;
+    private String timeZoneCde;
+    private boolean defaultSettings;
+
+    // Constructors, getters, setters...
+}
+
+d) WhiteLabel.java
+
+import java.util.List;
+
+public class WhiteLabel {
+    private String headerHubTitle;
+    private String hubLogo;
+    private String landingPageTitle;
+    private List products;
+
+    // Constructors, getters, setters...
+}
+
+e) Product.java
+
+import java.util.List;
+
+public class Product {
+    private int id;
+    private String title;
+    private String description;
+    private List points;
+    private String key;
+    private String buttonText;
+    private String icon;
+    private String url;
+
+    // Constructors, getters, setters...
+}
+
+f) Point.java
+
+public class Point {
+    private String name;
+    private String url;
+
+    // Constructors, getters, setters...
+}
