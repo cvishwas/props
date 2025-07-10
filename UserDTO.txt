@@ -1,0 +1,57 @@
+import java.util.Map;
+
+// Top-level DTO
+public class UserDTO {
+    private String id;
+    private String name;
+    private List<String> permissions;
+    private String environment;
+    private List<ServiceLocation> serviceLocations;
+    private Preferences preferences;
+    private String hubName;
+    private WhiteLabel whiteLabel;
+
+    // Getters and setters...
+    
+    // Nested classes
+    public static class ServiceLocation {
+        private String id;
+        private String value;
+        // Getters and setters...
+    }
+
+    public static class Preferences {
+        private String language;
+        private String dateFormat;
+        private String timeFormat;
+        private String timeZoneCde;
+        private boolean defaultSettings;
+        // Getters and setters...
+    }
+
+    public static class WhiteLabel {
+        private String headerHubTitle;
+        private String hubLogo;
+        private String landingPageTitle;
+        private List<Product> products;
+        // Getters and setters...
+    }
+
+    public static class Product {
+        private int id;
+        private String title;
+        private String description;
+        private List<Point> points;
+        private String key;
+        private String buttonText;
+        private String icon;
+        private String url;
+        // Getters and setters...
+    }
+
+    public static class Point {
+        private String name;
+        private String url;
+        // Getters and setters...
+    }
+}
