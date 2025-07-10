@@ -1,0 +1,9 @@
+@Query("SELECT DISTINCT r FROM Resource r " +
+           "JOIN ResourcePermission rp ON r.resourceId = rp.resource.id " +
+           "JOIN RolePermission rolePerm ON rp = rolePerm.resourcePermission " +
+           "JOIN Role role ON rolePerm.role = role " +
+           "JOIN UserRole ur ON role.roleKey = ur.role.roleKey " +
+           "JOIN User u ON ur.user = u " +
+           "WHERE u.userLoginId = :userId")
+    List<Resource> findResourcesByUserLoginId(@Param("userId") String userId);
+}
