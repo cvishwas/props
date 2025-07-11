@@ -1,0 +1,26 @@
+List<Point> getPointsByApplicationId(String applicationId);
+}
+
+public class ApplicationPointsRepositoryImpl implements ApplicationPointsRepository {
+
+    private static final Map<String, List<Point>> applicationPointsMap = new HashMap<>();
+
+    static {
+        // Initialize your hardcoded data here
+        applicationPointsMap.put("APP1", Arrays.asList(
+            new Point("Order Placement", "orders/entry"),
+            new Point("Review Orders", "orders/overview"),
+            new Point("ETFs", "etfs/all/etf-profiles")
+        ));
+        applicationPointsMap.put("APP2", Arrays.asList(
+            new Point("Order Creation", "create/order"),
+            new Point("Order Status", "status/order")
+        ));
+        // Add more as needed
+    }
+
+    @Override
+    public List<Point> getPointsByApplicationId(String applicationId) {
+        return applicationPointsMap.getOrDefault(applicationId, Collections.emptyList());
+    }
+}
