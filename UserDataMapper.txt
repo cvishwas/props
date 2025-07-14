@@ -1,0 +1,22 @@
+public static UserDataDashboardDTO toUserDataDashboardDTO(User user, List<String> roles, List<String> groups, List<String> applications) {
+        UserDataDashboardDTO dto = new UserDataDashboardDTO();
+
+        // Set user info
+        dto.setFirstName(user.getFirstName());
+        dto.setLastName(user.getLastName());
+        dto.setEmail(user.getEmail());
+        dto.setPhone(user.getPhone());
+        dto.setUserId(user.getUserLoginId());
+        dto.setUserType(user.getUserType());
+        dto.setStatus(user.getStatus());
+        dto.setLastUpdatedUser(user.getLastUpdatedUser());
+        dto.setLastUpdatedUserID(user.getLastUpdatedUserID());
+
+        // Set roles, groups, applications
+        dto.setPermissions(roles);
+        dto.setUserGroups(groups);
+        dto.setUserApplications(applications);
+
+        return dto;
+    }
+}
