@@ -1,0 +1,88 @@
+import spock.lang.Subject
+import spock.lang.Title
+import org.mockito.Mock
+import org.mockito.InjectMocks
+import org.mockito.MockitoAnnotations
+import static org.mockito.Mockito.*
+
+@Title("UserService Groovy/Spock Tests")
+class UserServiceSpec extends Specification {
+
+    @Mock
+    UserRepository userRepository
+
+    @Mock
+    RoleRepository roleRepository
+
+    @Mock
+    UserGroupRepository userGroupRepository
+
+    @Mock
+    UserApplicationRepository userApplicationRepository
+
+    @Mock
+    WhitelabelRepository whitelabelRepository
+
+    @InjectMocks
+    @Subject
+    UserService userService
+
+    def setup() {
+        MockitoAnnotations.openMocks(this)
+    }
+
+    def "Test getUserDataForUserId returns populated DTO"() {
+        given:
+        def user = new User(firstName: "John", lastName: "Doe", email: "john@example.com", userLoginId: "john123")
+        def roles = ["Admin", "User"]
+        def groups = ["Group1"]
+        def applications = ["App1"]
+        userRepository.findByUserLoginId("john123") >> Optional.of(user)
+        roleRepository.findRolesByUserId(_) >> roles
+        userGroupRepository.findGroupNamesByUserId(_) >> groups
+        userApplicationRepository.findApplicationNamesByUserId(_) >> applications
+
+        when:
+        def dto = userService.getUserDataForUserId("john123")
+
+        then:
+        dto.firstName == "John"
+        dto.permissions == roles
+        dto.userGroups == groups
+        dto.userApplications == applications
+        dto.email == "john@example.com"
+    }
+
+    def "Test getAllUserDataForDashboard returns list of DTOs"() {
+        given:
+        def user1 = new User(userLoginId: "u1")
+        def user2 = new User(userLoginId: "u2")
+        userRepository.findAll() >> [user1, user2]
+        roleRepository.findRolesByUserId(_) >> ["Role1"]
+        userGroupRepository.findGroupNamesByUserId(_) >> ["GroupA"]
+        userApplicationRepository.findApplicationNamesByUserId(_) >> ["AppA"]
+
+        when:
+        def result = userService.getAllUserDataForDashboard()
+
+        then:
+        result.size() == 2
+        result.every { it.permissions == ["Role1"] }
+        result.every { it.userGroups == ["GroupA"] }
+        result.every { it.userApplications == ["AppA"] }
+        result.every { it.firstName != null } // assuming your DTO has firstName etc.
+    }
+
+    def "Test getWhitelabelUserData returns data"() {
+        given:
+        def userId = "user123"
+        def whitelabel = new Whitelabel(headerHubTitle: "Title")
+        whitelabelRepository.findByUserId(userId) >> Optional.of(whitelabel)
+
+        when:
+        def data = userService.getWhitelabelUserData(userId)
+
+        then:
+        data.headerHubTitle == "Title"
+    }
+}
