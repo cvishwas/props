@@ -1,0 +1,48 @@
+<!-- ... your project coordinates ... -->
+
+  <dependencies>
+    <!-- Groovy -->
+    <dependency>
+      <groupId>org.codehaus.groovy</groupId>
+      <artifactId>groovy-all</artifactId>
+      <version>3.0.9</version>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- Spock Framework -->
+    <dependency>
+      <groupId>org.spockframework</groupId>
+      <artifactId>spock-core</artifactId>
+      <version>2.3-groovy-3.0</version>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- Mockito (Optional, for mocking with Spock) -->
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>4.0.0</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- GMavenPlus plugin for Groovy support -->
+      <plugin>
+        <groupId>org.codehaus.gmavenplus</groupId>
+        <artifactId>gmavenplus-plugin</artifactId>
+        <version>1.13.0</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>compile</goal>
+              <goal>testCompile</goal>
+              <goal>test</goal> <!-- runs tests during Maven test phase -->
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>
