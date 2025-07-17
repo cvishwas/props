@@ -1,0 +1,80 @@
+import java.util.List;
+
+public class RolePermissionsSummary {
+
+    private Long roleId;
+    private String roleName;
+    private String roleDesc;
+    private String status;
+    private Long userCount;
+    private List<String> permissionNames;
+    private List<String> resourceNames;
+
+    public RolePermissionsSummary(Long roleId, String roleName, String roleDesc, String status, Long userCount,
+                                  List<String> permissionNames, List<String> resourceNames) {
+        this.roleId = roleId;
+        this.roleName = roleName;
+        this.roleDesc = roleDesc;
+        this.status = status;
+        this.userCount = userCount;
+        this.permissionNames = permissionNames;
+        this.resourceNames = resourceNames;
+    }
+
+    // Getters and setters...
+}
+
+public interface RoleRepository extends JpaRepository<Role, Long> {
+
+    @Query(value = 
+        "SELECT r.role_key as roleId, r.role_name as roleName, r.role_desc as roleDesc, r.active_flag as status, "
+        + "COUNT(ur.user_key) as userCount, "
+        + "LISTAGG(p.permission_name, ',') WITHIN GROUP (ORDER BY p.permission_name) as permissionNames, "
+        + "LISTAGG(res.resource_name, ',') WITHIN GROUP (ORDER BY res.resource_name) as resourceNames "
+        + "FROM user_role ur "
+        + "JOIN role r ON ur.role_key = r.role_key "
+        + "JOIN role_permission rp ON r.role_key = rp.role_key "
+        + "JOIN resource_permission p ON rp.resource_permission_id = p.resource_permission_id "
+        + "JOIN resource res ON p.resource_id = res.resource_id "
+        + "WHERE ur.user_key IN (SELECT user_key FROM user WHERE user_login_id = :userId) "
+        + "GROUP BY r.role_key, r.role_name, r.role_desc, r.active_flag",
+        nativeQuery = true)
+    List<Object[]> findRolePermissionsByUser(@Param("userId") String userId);
+}
+
+public class UserRoleSummaryService {
+
+    @Autowired
+    private RoleRepository roleRepository;
+
+    public List<GroupDTO> getUserRolesWithPermissions(String userId) {
+        List<Object[]> results = roleRepository.findRolePermissionsByUser(userId);
+        List<GroupDTO> groups = new ArrayList<>();
+
+        for (Object[] row : results) {
+            Long roleId = ((Number) row[0]).longValue();
+            String roleName = (String) row[1];
+            String roleDesc = (String) row[2];
+            String status = (String) row[3];
+            Long userCount = ((Number) row[4]).longValue();
+            String permissionNamesStr = (String) row[5];
+            String resourceNamesStr = (String) row[6];
+
+            List<String> permissions = List.of(permissionNamesStr.split(","));
+            List<String> resources = List.of(resourceNamesStr.split(","));
+
+            GroupDTO group = new GroupDTO();
+            group.setGroupId(roleId);
+            group.setGroupName(roleName);
+            group.setGroupDescription(roleDesc);
+            group.setStatus(status);
+            group.setUserCount(userCount);
+            group.setPermissions(permissions);
+            // you may want to set other fields as needed
+
+            groups.add(group);
+        }
+
+        return groups;
+    }
+}
