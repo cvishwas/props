@@ -1,0 +1,14 @@
+import org.mapstruct.Mapping;
+import org.mapstruct.factory.Mappers;
+import java.util.List;
+
+@Mapper
+public interface LookupDtoMapper {
+
+    LookupDtoMapper INSTANCE = Mappers.getMapper(LookupDtoMapper.class);
+
+    // Example: Map from SourceObject to LookupDto<SomeType>
+    @Mapping(source = "name", target = "lookupName")
+    @Mapping(source = "values", target = "lookupValues")
+    <T> LookupDto<T> toLookupDto(SourceObject source, Class<T> clazz);
+}
