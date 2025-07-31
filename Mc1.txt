@@ -1,0 +1,252 @@
+import java.sql.Timestamp;
+
+@Entity
+@Table(name = "roles")
+public class Role {
+
+    @Id
+    @Column(name = "role_id")
+    private String roleId;  // PK
+
+    @Column(name = "role_name")
+    private String roleName;
+
+    @Column(name = "role_desc")
+    private String roleDesc;
+
+    @Column(name = "is_editable")
+    private String isEditable;
+
+    @Column(name = "is_external")
+    private String isExternal;
+
+    @Column(name = "active_flag")
+    private String activeFlag;
+
+    @Column(name = "insert_user_id")
+    private String insertUserId;
+
+    @Column(name = "update_user_id")
+    private String updateUserId;
+
+    @Column(name = "insert_tsp")
+    private Timestamp insertTsp;
+
+    @Column(name = "last_update_tsp")
+    private Timestamp lastUpdateTsp;
+
+    // Getters/setters...
+}
+
+import java.sql.Timestamp;
+
+@Entity
+@Table(name = "role_resource_permissions")
+public class RoleResourcePermission {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "role_resource_permission_key")
+    private Long roleResourcePermissionKey; // PK
+
+    @Column(name = "resource_permission_key")
+    private Long resourcePermissionKey;
+
+    @Column(name = "role_id")
+    private String roleId;
+
+    @Column(name = "active_flag")
+    private String activeFlag;
+
+    @Column(name = "insert_user_id")
+    private String insertUserId;
+
+    @Column(name = "update_user_id")
+    private String updateUserId;
+
+    @Column(name = "insert_tsp")
+    private Timestamp insertTsp;
+
+    @Column(name = "last_update_tsp")
+    private Timestamp lastUpdateTsp;
+
+    // Getters/setters...
+}
+
+import java.sql.Timestamp;
+import java.util.Date;
+
+@Entity
+@Table(name = "maker_checker_change_requests")
+public class MakerCheckerChangeRequest {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "change_request_key")
+    private Long changeRequestKey;
+
+    @Column(name = "entity_name")
+    private String entityName; // e.g., "role"
+
+    @Column(name = "entity_key_column")
+    private String entityKeyColumn; // "role_id"
+
+    @Column(name = "entity_key_value")
+    private String entityKeyValue;
+
+    @Column(name = "change_type")
+    private String changeType; // create/update/delete
+
+    @Lob
+    @Column(name = "change_payload")
+    private String changePayload;
+
+    @Column(name = "requestor_user_id")
+    private String requestorUserId;
+
+    @Column(name = "change_status")
+    private String changeStatus; // "pending-approval"
+
+    @Column(name = "approver_user_id")
+    private String approverUserId;
+
+    @Column(name = "approved_date")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date approvedDate;
+
+    @Column(name = "maker_checker_comments")
+    private String makerCheckerComments;
+
+    @Column(name = "insert_user_id")
+    private String insertUserId;
+
+    @Column(name = "last_update_user_id")
+    private String lastUpdateUserId;
+
+    @Column(name = "insert_tsp")
+    private Timestamp insertTsp;
+
+    @Column(name = "last_update_tsp")
+    private Timestamp lastUpdateTsp;
+
+    @Column(name = "org_id")
+    private String orgId;
+
+    // Getters/setters...
+}
+
+public interface RoleResourcePermissionRepository extends JpaRepository<RoleResourcePermission, Long> {
+    // No custom methods needed here
+}
+
+public interface MakerCheckerRepository extends JpaRepository<MakerCheckerChangeRequest, Long> { }
+
+import org.springframework.transaction.annotation.Transactional;
+import java.sql.Timestamp;
+
+@Service
+public class RoleService {
+
+    private final RoleRepository roleRepository;
+    private final RoleResourcePermissionRepository rolePermRepository;
+    private final MakerCheckerRepository makerCheckerRepository;
+
+    public RoleService(RoleRepository roleRepository,
+                       RoleResourcePermissionRepository rolePermRepository,
+                       MakerCheckerRepository makerCheckerRepository) {
+        this.roleRepository = roleRepository;
+        this.rolePermRepository = rolePermRepository;
+        this.makerCheckerRepository = makerCheckerRepository;
+    }
+
+    @Transactional
+    public RoleCreateResponse createRoleWithPermissions(RoleCreateRequest request) {
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+
+        // 1. Create Role with active_flag='N'
+        Role role = new Role();
+        role.setRoleId(request.getRoleId());
+        role.setRoleName(request.getRoleName());
+        role.setRoleDesc(request.getRoleDesc());
+        role.setIsEditable("Y");
+        role.setIsExternal("N");
+        role.setActiveFlag("N");
+        role.setInsertUserId(request.getRequestorUserId());
+        role.setUpdateUserId(request.getRequestorUserId());
+        role.setInsertTsp(now);
+        role.setLastUpdateTsp(now);
+        role = roleRepository.save(role);
+
+        // 2. Create RoleResourcePermission records with active_flag='N'
+        for (Long permId : request.getResourcePermissionIds()) {
+            RoleResourcePermission rrp = new RoleResourcePermission();
+            rrp.setRoleId(role.getRoleId());
+            rrp.setResourcePermissionKey(permId);
+            rrp.setActiveFlag("N");
+            rrp.setInsertUserId(request.getRequestorUserId());
+            rrp.setUpdateUserId(request.getRequestorUserId());
+            rrp.setInsertTsp(now);
+            rrp.setLastUpdateTsp(now);
+            rolePermRepository.save(rrp);
+        }
+
+        // 3. Create MakerCheckerChangeRequest record
+        MakerCheckerChangeRequest mcRequest = new MakerCheckerChangeRequest();
+        mcRequest.setEntityName("role");
+        mcRequest.setEntityKeyColumn("role_id");
+        mcRequest.setEntityKeyValue(role.getRoleId());
+        mcRequest.setChangeType("create");
+        mcRequest.setChangePayload("{\"roleId\":\"" + role.getRoleId() + "\", \"permissions\": " + request.getResourcePermissionIds().toString() + "}");
+        mcRequest.setRequestorUserId(request.getRequestorUserId());
+        mcRequest.setChangeStatus("pending-approval");
+        mcRequest.setInsertUserId(request.getRequestorUserId());
+        mcRequest.setLastUpdateUserId(request.getRequestorUserId());
+        mcRequest.setInsertTsp(now);
+        mcRequest.setLastUpdateTsp(now);
+        makerCheckerRepository.save(mcRequest);
+
+        // Return response with request id
+        return new RoleCreateResponse("Role creation request submitted", "pending-approval", mcRequest.getChangeRequestKey());
+    }
+}
+
+import org.springframework.http.ResponseEntity;
+
+@RestController
+@RequestMapping("/api/roles")
+public class RoleController {
+
+    private final RoleService roleService;
+
+    public RoleController(RoleService roleService) {
+        this.roleService = roleService;
+    }
+
+    @PostMapping("/create-with-permissions")
+    public ResponseEntity<RoleCreateResponse> createRole(@RequestBody RoleCreateRequest request) {
+        RoleCreateResponse response = roleService.createRoleWithPermissions(request);
+        return ResponseEntity.ok(response);
+    }
+}
+
+    private String roleId;
+    private String roleName;
+    private String roleDesc;
+    private List<Long> resourcePermissionIds;
+    private String requestorUserId;
+    // Getters and setters...
+}
+
+public class RoleCreateResponse {
+    private String message;
+    private String status; // e.g., "pending-approval"
+    private Long requestId;
+
+    public RoleCreateResponse(String message, String status, Long requestId) {
+        this.message = message;
+        this.status = status;
+        this.requestId = requestId;
+    }
+
+    // Getters & setters...
+}
