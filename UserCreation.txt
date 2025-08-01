@@ -1,0 +1,115 @@
+public class UserCreateRequest {
+    private String firstName;
+    private String lastName;
+    private String email;
+    private String phone;
+    private String userTzaabbrev;
+    private String externalUserFlag;
+    private String userLoginId;
+    private List<String> roleIds; // roles to assign
+    private String requestorUserId;
+
+    // Getters and setters...
+}
+
+    private String message;
+    private String status; // e.g., "pending-approval"
+    private Long requestId; // maker check request ID
+
+    public UserCreateResponse(String message, String status, Long requestId) {
+        this.message = message;
+        this.status = status;
+        this.requestId = requestId;
+    }
+
+    // Getters and setters...
+}
+
+import org.springframework.transaction.annotation.Transactional;
+import java.sql.Timestamp;
+import java.util.List;
+
+@Service
+public class UserManagementService {
+
+    private final UserRepository userRepo;
+    private final UserRoleRepository userRoleRepo;
+    private final MakerCheckerRepository makerCheckerRepo;
+
+    public UserManagementService(UserRepository userRepo, UserRoleRepository userRoleRepo, MakerCheckerRepository makerCheckerRepo) {
+        this.userRepo = userRepo;
+        this.userRoleRepo = userRoleRepo;
+        this.makerCheckerRepo = makerCheckerRepo;
+    }
+
+    @Transactional
+    public UserCreateResponse createUserWithRoles(UserCreateRequest request) {
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+
+        // 1. Create User with active_flag='Y'
+        User user = new User();
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
+        user.setEmail(request.getEmail());
+        user.setPhone(request.getPhone());
+        user.setUserTzaabbrev(request.getUserTzaabbrev());
+        user.setExternalUserFlag(request.getExternalUserFlag());
+        user.setUserLoginId(request.getUserLoginId());
+        user.setActiveFlag("Y");
+        user.setInsertUserId(request.getRequestorUserId());
+        user.setLastUpdateUserId(request.getRequestorUserId());
+        user.setInsertTsp(now);
+        user.setLastUpdateTsp(now);
+        user = userRepo.save(user);
+
+        // 2. Insert roles with active_flag='N'
+        for (String roleId : request.getRoleIds()) {
+            UserRole ur = new UserRole();
+            ur.setUser(user);
+            ur.setRoleId(roleId);
+            ur.setActiveFlag("N");
+            ur.setInsertUserId(request.getRequestorUserId());
+            ur.setLastUpdateUserId(request.getRequestorUserId());
+            ur.setInsertTsp(now);
+            ur.setLastUpdateTsp(now);
+            userRoleRepo.save(ur);
+        }
+
+        // 3. Create maker-checker record with status 'pending-approval'
+        MakerCheckerChangeRequest mcRequest = new MakerCheckerChangeRequest();
+        mcRequest.setEntityName("user");
+        mcRequest.setEntityKeyColumn("user_id");
+        mcRequest.setEntityKeyValue(user.getUserId().toString());
+        mcRequest.setChangeType("create");
+        // For payload, you might serialize the user and roles info as JSON
+        mcRequest.setChangePayload("{\"userId\":\"" + user.getUserId() + "\", \"roles\":" + request.getRoleIds().toString() + "}");
+        mcRequest.setRequestorUserId(request.getRequestorUserId());
+        mcRequest.setChangeStatus("pending-approval");
+        mcRequest.setInsertUserId(request.getRequestorUserId());
+        mcRequest.setLastUpdateUserId(request.getRequestorUserId());
+        mcRequest.setInsertTsp(now);
+        mcRequest.setLastUpdateTsp(now);
+        makerCheckerRepo.save(mcRequest);
+
+        return new UserCreateResponse("User creation request submitted", "pending-approval", mcRequest.getChangeRequestKey());
+    }
+}
+
+import org.springframework.http.ResponseEntity;
+
+@RestController
+@RequestMapping("/api/users")
+public class UserController {
+
+    private final UserManagementService userService;
+
+    public UserController(UserManagementService userService) {
+        this.userService = userService;
+    }
+
+    @PostMapping("/create-with-roles")
+    public ResponseEntity<UserCreateResponse> createUser(@RequestBody UserCreateRequest request) {
+        UserCreateResponse response = userService.createUserWithRoles(request);
+        return ResponseEntity.ok(response);
+    }
+}
