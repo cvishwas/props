@@ -1,0 +1,84 @@
+import java.sql.Timestamp;
+
+@Entity
+@Table(name = "audit_record_log")
+public class AuditRecordLog {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "audit_record_log_key")
+    private Long auditRecordLogKey;
+
+    @Column(name = "dml_event_name")
+    private String dmlEventName; // e.g., INSERT, UPDATE, DELETE
+
+    @Column(name = "table_name")
+    private String tableName;
+
+    @Column(name = "record_key_column")
+    private String recordKeyColumn; // e.g., 'user_id' or 'role_id'
+
+    @Column(name = "record_key_value")
+    private String recordKeyValue; // the actual ID value
+
+    @Column(name = "insert_user_id")
+    private String insertUserId;
+
+    @Column(name = "org_id")
+    private String orgId;
+
+    @Lob
+    @Column(name = "record_data")
+    private String recordData; // JSON string of full record
+
+    @Lob
+    @Column(name = "record_delta_data")
+    private String recordDeltaData; // JSON string of changes
+
+    @Column(name = "insert_tsp")
+    private Timestamp insertTsp;
+
+    // Getters and setters...
+}
+
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface AuditRecordLogRepository extends JpaRepository<AuditRecordLog, Long> {
+}
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import java.sql.Timestamp;
+
+@Service
+public class AuditLogService {
+
+    @Autowired
+    private AuditRecordLogRepository auditRepo;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    public void log(String eventName, String tableName, String keyColumn, String keyValue,
+                    String userId, String orgId, Object recordData, Object deltaData) {
+        try {
+            AuditRecordLog log = new AuditRecordLog();
+            log.setDmlEventName(eventName);
+            log.setTableName(tableName);
+            log.setRecordKeyColumn(keyColumn);
+            log.setRecordKeyValue(keyValue);
+            log.setInsertUserId(userId);
+            log.setOrgId(orgId);
+            log.setInsertTsp(new Timestamp(System.currentTimeMillis()));
+
+            // serialize recordData and deltaData to JSON
+            log.setRecordData(objectMapper.writeValueAsString(recordData));
+            log.setRecordDeltaData(objectMapper.writeValueAsString(deltaData));
+
+            auditRepo.save(log);
+        } catch (Exception e) {
+            // handle serialization exceptions
+            e.printStackTrace();
+        }
+    }
+}
