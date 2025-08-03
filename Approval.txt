@@ -1,0 +1,84 @@
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/maker-checker")
+public class MakerCheckerApprovalController {
+
+    private final MakerCheckerService makerCheckerService;
+    private final UserService userService;
+    private final RoleService roleService;
+
+    public MakerCheckerApprovalController(MakerCheckerService makerCheckerService,
+                                          UserService userService,
+                                          RoleService roleService) {
+        this.makerCheckerService = makerCheckerService;
+        this.userService = userService;
+        this.roleService = roleService;
+    }
+
+    @PostMapping("/approve/{requestId}")
+    public ResponseEntity<String> approveRequest(
+            @PathVariable Long requestId,
+            @RequestParam String action, // 'CONFIRM' or 'REJECT'
+            @RequestParam String comment,
+            @RequestParam String id, // userId or roleId passed as URL param
+            @RequestParam String entityType // 'user' or 'role'
+    ) {
+        try {
+            makerCheckerService.processApproval(requestId, action, comment, id, entityType);
+            return ResponseEntity.ok("Request processed successfully");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error: " + e.getMessage());
+        }
+    }
+}
+
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class MakerCheckerService {
+
+    private final MakerCheckerChangeRequestRepository requestRepo;
+    private final UserService userService;
+    private final RoleService roleService;
+
+    public MakerCheckerService(MakerCheckerChangeRequestRepository requestRepo,
+                               UserService userService,
+                               RoleService roleService) {
+        this.requestRepo = requestRepo;
+        this.userService = userService;
+        this.roleService = roleService;
+    }
+
+    @Transactional
+    public void processApproval(Long requestId, String action, String comment, String id, String entityType) {
+        MakerCheckerChangeRequest request = requestRepo.findById(requestId)
+                .orElseThrow(() -> new RuntimeException("Request not found"));
+
+        // Update maker check record
+        request.setChangeStatus(action.equalsIgnoreCase("CONFIRM") ? "approved" : "rejected");
+        request.setApproverUserId("system"); // or fetch from context
+        request.setApprovedDate(new java.util.Date());
+        request.setMakerCheckerComments(comment);
+        request.setLastUpdateUserId("system");
+        request.setLastUpdateTsp(new java.sql.Timestamp(System.currentTimeMillis()));
+        request.setChangeType("update"); // or keep original
+
+        requestRepo.save(request);
+
+        // Apply changes if approved
+        if (action.equalsIgnoreCase("CONFIRM")) {
+            if ("user".equalsIgnoreCase(entityType)) {
+                // Create user
+                userService.createUserFromRequest(request.getChangePayload(), id);
+            } else if ("role".equalsIgnoreCase(entityType)) {
+                // Create role
+                roleService.createRoleFromRequest(request.getChangePayload(), id);
+            }
+        }
+    }
+}
+
+    // Parse JSON payload (use Jackson or Gson)
+    // Extract user details and create User entity
+}
