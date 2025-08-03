@@ -1,0 +1,47 @@
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api")
+public class ApprovalController {
+
+    private final MakerCheckerService makerCheckerService;
+
+    public ApprovalController(MakerCheckerService makerCheckerService) {
+        this.makerCheckerService = makerCheckerService;
+    }
+
+    /**
+     * Approve or reject user creation
+     * URL: /users/{userId}
+     */
+    @PostMapping("/users/{userId}")
+    public ResponseEntity<String> approveUser(@PathVariable String userId,
+                                              @RequestBody ApprovalRequest request) {
+        makerCheckerService.processApproval(userId, request.getAction(), request.getComments(), "user");
+        return ResponseEntity.ok("User request processed");
+    }
+
+    /**
+     * Approve or reject group (role) creation
+     * URL: /groups/{groupId}
+     */
+    @PostMapping("/groups/{groupId}")
+    public ResponseEntity<String> approveGroup(@PathVariable String groupId,
+                                               @RequestBody ApprovalRequest request) {
+        makerCheckerService.processApproval(groupId, request.getAction(), request.getComments(), "role");
+        return ResponseEntity.ok("Group request processed");
+    }
+
+    // DTO for request payload
+    public static class ApprovalRequest {
+        private String action; // "confirm" or "reject"
+        private String comments;
+
+        // Getters and setters
+        public String getAction() { return action; }
+        public void setAction(String action) { this.action = action; }
+
+        public String getComments() { return comments; }
+        public void setComments(String comments) { this.comments = comments; }
+    }
+}
