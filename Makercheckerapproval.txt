@@ -1,0 +1,15 @@
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import java.util.Optional;
+
+public interface MakerCheckerRepository extends JpaRepository<MakerCheckerChangeRequest, Long> {
+
+    @Query("SELECT m FROM MakerCheckerChangeRequest m WHERE m.entityKeyColumn = :entityKeyColumn AND m.entityKeyValue = :entityKeyValue AND m.changeStatus = 'pending-approval'")
+    Optional<MakerCheckerChangeRequest> findPendingByEntity(@Param("entityKeyColumn") String entityKeyColumn, @Param("entityKeyValue") String entityKeyValue);
+}
+
+private MakerCheckerRepository makerCheckerRepository;
+
+public Optional<MakerCheckerChangeRequest> getPendingRequest(String entityKeyColumn, String entityKeyValue) {
+    return makerCheckerRepository.findPendingByEntity(entityKeyColumn, entityKeyValue);
+}
