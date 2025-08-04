@@ -1,0 +1,21 @@
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+public interface UserRepository extends JpaRepository<User, Long> {
+    
+    @Modifying
+    @Query("UPDATE User u SET u.activeFlag = 'Y' WHERE u.userLoginId = :userId")
+    int activateUserByUserId(@Param("userId") String userId);
+}
+
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+public interface RoleRepository extends JpaRepository<Role, String> {
+    
+    @Modifying
+    @Query("UPDATE Role r SET r.activeFlag = 'Y' WHERE r.roleId = :roleId")
+    int activateRoleByRoleId(@Param("roleId") String roleId);
+}
