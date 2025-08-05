@@ -1,0 +1,125 @@
+public class RoleEditRequest {
+    private String roleId;
+    private String roleName;
+    private String roleDesc;
+    private List<Long> permissionsToAdd;
+    private List<Long> permissionsToRemove;
+    private String requestorUserId;
+
+    // Getters and setters...
+}
+
+    private String message;
+    private String status; // e.g., "pending-approval"
+    private Long requestId;
+
+    public RoleEditResponse(String message, String status, Long requestId) {
+        this.message = message;
+        this.status = status;
+        this.requestId = requestId;
+    }
+
+    // Getters and setters...
+}
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class RoleEditService {
+
+    private final RoleRepository roleRepository;
+    private final RoleResourcePermissionRepository rolePermRepository;
+    private final MakerCheckerRepository makerCheckerRepo;
+    private final AuditLogRepository auditLogRepo;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    public RoleEditService(RoleRepository roleRepository,
+                           RoleResourcePermissionRepository rolePermRepository,
+                           MakerCheckerRepository makerCheckerRepo,
+                           AuditLogRepository auditLogRepo) {
+        this.roleRepository = roleRepository;
+        this.rolePermRepository = rolePermRepository;
+        this.makerCheckerRepo = makerCheckerRepo;
+        this.auditLogRepo = auditLogRepo;
+    }
+
+    @Transactional
+    public RoleEditResponse editRole(RoleEditRequest request) throws Exception {
+        // 1. Fetch current role data
+        Role role = roleRepository.findById(request.getRoleId())
+                .orElseThrow(() -> new RuntimeException("Role not found"));
+
+        // 2. Compose full role JSON
+        String fullRoleJson = objectMapper.writeValueAsString(role);
+
+        // 3. Fetch current permissions
+        List<RoleResourcePermission> currentPerms = rolePermRepository.findByRoleRoleId(role.getRoleId());
+        List<Long> currentPermIds = currentPerms.stream()
+                .map(RoleResourcePermission::getResourcePermissionKey)
+                .collect(Collectors.toList());
+
+        // 4. Determine delta
+        List<Long> toAdd = request.getPermissionsToAdd();
+        List<Long> toRemove = request.getPermissionsToRemove();
+
+        // 5. Create delta JSON
+        String deltaJson = objectMapper.writeValueAsString(
+            Map.of(
+                "added", toAdd,
+                "removed", toRemove
+            )
+        );
+
+        // 6. Save a new MakerCheckerChangeRequest
+        MakerCheckerChangeRequest mcRequest = new MakerCheckerChangeRequest();
+        mcRequest.setEntityName("role");
+        mcRequest.setEntityKeyColumn("role_id");
+        mcRequest.setEntityKeyValue(role.getRoleId());
+        mcRequest.setChangeType("update");
+        mcRequest.setChangePayload(fullRoleJson);
+        mcRequest.setChangeDeltaPayload(deltaJson);
+        mcRequest.setRequestorUserId(request.getRequestorUserId());
+        mcRequest.setChangeStatus("pending-approval");
+        mcRequest.setInsertUserId(request.getRequestorUserId());
+        mcRequest.setLastUpdateUserId(request.getRequestorUserId());
+        mcRequest.setInsertTsp(new Timestamp(System.currentTimeMillis()));
+        mcRequest.setLastUpdateTsp(new Timestamp(System.currentTimeMillis()));
+        makerCheckerRepo.save(mcRequest);
+
+        // 7. Record in audit table (full JSON and delta JSON)
+        AuditRecordLog auditLog = new AuditRecordLog();
+        auditLog.setDmlEventName("UPDATE");
+        auditLog.setTableName("roles");
+        auditLog.setRecordKeyColumn("role_id");
+        auditLog.setRecordKeyValue(role.getRoleId());
+        auditLog.setInsertUserId(request.getRequestorUserId());
+        auditLog.setOrgId("default-org"); // or pass as parameter
+        auditLog.setRecordData(fullRoleJson);
+        auditLog.setRecordDeltaData(deltaJson);
+        auditLog.setInsertTsp(new Timestamp(System.currentTimeMillis()));
+        auditLog.setLastUpdateTsp(new Timestamp(System.currentTimeMillis()));
+        auditLogRepo.save(auditLog);
+
+        return new RoleEditResponse("Role update request submitted", "pending-approval", mcRequest.getChangeRequestKey());
+    }
+}
+
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/roles")
+public class RoleController {
+
+    private final RoleEditService roleEditService;
+
+    public RoleController(RoleEditService roleEditService) {
+        this.roleEditService = roleEditService;
+    }
+
+    @PostMapping("/edit")
+    public ResponseEntity<RoleEditResponse> editRole(@RequestBody RoleEditRequest request) throws Exception {
+        RoleEditResponse response = roleEditService.editRole(request);
+        return ResponseEntity.ok(response);
+    }
+}
