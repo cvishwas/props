@@ -1,0 +1,26 @@
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+public class ListComparison {
+
+    public static void main(String[] args) {
+        List<Long> currentlyStill = List.of(1L, 2L, 3L, 4L);
+        List<Long> newList = List.of(3L, 4L, 5L, 6L);
+
+        // Convert lists to sets for efficient operations
+        Set<Long> currentSet = new HashSet<>(currentlyStill);
+        Set<Long> newSet = new HashSet<>(newList);
+
+        // Elements in current but not in newList -> to be deleted
+        List<Long> toBeDeleted = new ArrayList<>(currentSet);
+        toBeDeleted.removeAll(newSet);
+
+        // Elements in newList but not in current -> to be added
+        List<Long> toBeAdded = new ArrayList<>(newSet);
+        toBeAdded.removeAll(currentSet);
+
+        System.out.println("To be deleted: " + toBeDeleted);
+        System.out.println("To be added: " + toBeAdded);
+    }
+}
