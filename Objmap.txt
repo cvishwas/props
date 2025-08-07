@@ -1,0 +1,21 @@
+import com.fasterxml.jackson.core.type.TypeReference;
+
+public class JsonDeserializer {
+
+    public static void main(String[] args) throws Exception {
+        String jsonString = /* the JSON string fetched from DB */;
+
+        ObjectMapper mapper = new ObjectMapper();
+
+        // Define the TypeReference for the generic type
+        TypeReference<RequestPayLoadDto<GroupEditReq>> typeRef = new TypeReference<RequestPayLoadDto<GroupEditReq>>() {};
+
+        // Deserialize JSON string into the object
+        RequestPayLoadDto<GroupEditReq> requestPayload = mapper.readValue(jsonString, typeRef);
+
+        // Now you can use requestPayload
+        System.out.println(requestPayload.getId());
+        System.out.println(requestPayload.getAction());
+        System.out.println(requestPayload.getData().getGroupId());
+    }
+}
