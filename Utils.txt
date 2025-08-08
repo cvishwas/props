@@ -1,0 +1,40 @@
+import java.util.Map;
+
+public class UserDeltaUtils {
+
+    public static Map<String, Object> getChangedFields(User original, User modified) {
+        Map<String, Object> delta = new HashMap<>();
+
+        if (original == null || modified == null) {
+            throw new IllegalArgumentException("User objects cannot be null");
+        }
+
+        if (isDifferent(original.getFirstName(), modified.getFirstName())) {
+            delta.put("firstName", modified.getFirstName());
+        }
+        if (isDifferent(original.getLastName(), modified.getLastName())) {
+            delta.put("lastName", modified.getLastName());
+        }
+        if (isDifferent(original.getEmail(), modified.getEmail())) {
+            delta.put("email", modified.getEmail());
+        }
+        if (isDifferent(original.getPhone(), modified.getPhone())) {
+            delta.put("phone", modified.getPhone());
+        }
+        if (isDifferent(original.getUserLoginId(), modified.getUserLoginId())) {
+            delta.put("userLoginId", modified.getUserLoginId());
+        }
+
+        return delta;
+    }
+
+    private static boolean isDifferent(String originalValue, String modifiedValue) {
+        if (originalValue == null && modifiedValue == null) {
+            return false;
+        }
+        if (originalValue == null || modifiedValue == null) {
+            return true;
+        }
+        return !originalValue.equals(modifiedValue);
+    }
+}
