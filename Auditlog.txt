@@ -1,0 +1,93 @@
+import java.sql.Timestamp;
+
+@Entity
+@Table(name = "audit_record_table")
+public class AuditRecord {
+
+    @Id
+    @Column(name = "audit_record_log_key")
+    private Long auditRecordLogKey;
+
+    @Column(name = "DML_EVENT_NAME")
+    private String dmlEventName;
+
+    @Column(name = "TABLE_NAME")
+    private String tableName;
+
+    @Column(name = "record_key_column")
+    private String recordKeyColumn;
+
+    @Column(name = "record_key_value")
+    private String recordKeyValue;
+
+    @Lob
+    @Column(name = "record_data")
+    private String recordData; // JSON string
+
+    @Lob
+    @Column(name = "record_delta_data")
+    private String recordDeltaData; // JSON string
+
+    @Column(name = "insert_tsp")
+    private Timestamp insertTsp;
+
+    @Column(name = "insert_user_id")
+    private String insertUserId;
+
+    @Column(name = "org_id")
+    private String orgId;
+
+    // Getters and setters...
+}
+
+import org.springframework.stereotype.Repository;
+import java.util.List;
+
+@Repository
+public interface AuditRecordRepository extends JpaRepository<AuditRecord, Long> {
+
+    // Find all audit records for a specific user
+    List<AuditRecord> findByInsertUserId(String insertUserId);
+}
+
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class AuditLogService {
+
+    @Autowired
+    private AuditRecordRepository auditRecordRepository;
+
+    /**
+     * Retrieves all audit records for a given userId and processes the JSON data.
+     */
+    public List<AuditRecord> getAuditLogsByUserId(String userId) {
+        return auditRecordRepository.findByInsertUserId(userId);
+    }
+
+    /**
+     * Optionally, parse the JSON record_data and record_delta_data fields
+     * using Jackson or Gson if you want to process the JSON content.
+     */
+}
+
+public class AuditLogController {
+
+    @Autowired
+    private AuditLogService auditLogService;
+
+    public void printAuditLogsForUser(String userId) {
+        List<AuditRecord> logs = auditLogService.getAuditLogsByUserId(userId);
+        for (AuditRecord log : logs) {
+            System.out.println("Event: " + log.getDmlEventName());
+            System.out.println("Table: " + log.getTableName());
+            System.out.println("Record Key: " + log.getRecordKeyValue());
+            System.out.println("Record Data: " + log.getRecordData());
+            System.out.println("Delta Data: " + log.getRecordDeltaData());
+            System.out.println("Timestamp: " + log.getInsertTsp());
+            System.out.println("-----------------------------------");
+        }
+    }
+}
