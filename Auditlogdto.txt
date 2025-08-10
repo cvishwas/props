@@ -1,0 +1,71 @@
+import java.util.List;
+
+public class AuditLogDto {
+
+    private List<LogEntry> data;
+
+    // Getters and Setters
+    public List<LogEntry> getData() {
+        return data;
+    }
+
+    public void setData(List<LogEntry> data) {
+        this.data = data;
+    }
+
+    public static class LogEntry {
+        private String status;
+        private String comment;
+        private ZonedDateTime timestamp;
+        private String admin;      // optional, alternative to userName
+        private String userName;   // optional
+        private String adminId;
+        private String userId;     // optional
+        private Long id;
+        private List<Event> events; // optional
+
+        // Getters and Setters
+        public String getStatus() { return status; }
+        public void setStatus(String status) { this.status = status; }
+
+        public String getComment() { return comment; }
+        public void setComment(String comment) { this.comment = comment; }
+
+        public ZonedDateTime getTimestamp() { return timestamp; }
+        public void setTimestamp(ZonedDateTime timestamp) { this.timestamp = timestamp; }
+
+        public String getAdmin() { return admin; }
+        public void setAdmin(String admin) { this.admin = admin; }
+
+        public String getUserName() { return userName; }
+        public void setUserName(String userName) { this.userName = userName; }
+
+        public String getAdminId() { return adminId; }
+        public void setAdminId(String adminId) { this.adminId = adminId; }
+
+        public String getUserId() { return userId; }
+        public void setUserId(String userId) { this.userId = userId; }
+
+        public Long getId() { return id; }
+        public void setId(Long id) { this.id = id; }
+
+        public List<Event> getEvents() { return events; }
+        public void setEvents(List<Event> events) { this.events = events; }
+    }
+
+    public static class Event {
+        private String key;
+        private Object value;      // can be String or List<String>
+        private Object oldValue;   // can be String or List<String>
+
+        // Getters and Setters
+        public String getKey() { return key; }
+        public void setKey(String key) { this.key = key; }
+
+        public Object getValue() { return value; }
+        public void setValue(Object value) { this.value = value; }
+
+        public Object getOldValue() { return oldValue; }
+        public void setOldValue(Object oldValue) { this.oldValue = oldValue; }
+    }
+}
