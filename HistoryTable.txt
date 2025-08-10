@@ -1,0 +1,98 @@
+{
+    "metadata": {
+        "success": true,
+        "responseId": "ORDER4564346",
+        "description": "user history"
+    },
+    "data": [
+        {
+            "status": "ACTIVE",
+            "comment": "Change Confirmed Conditionally as per user agreement",
+            "timestamp": "2018-06-11T11:17:00Z",
+            "admin": "Alex Gordon",
+            "adminId": "a343434",
+            "id": 838485
+        },
+        {
+            "status": "PENDING_APPROVAL",
+            "comment": "Groups change",
+            "timestamp": "2018-06-11T11:17:00Z",
+            "admin": "Alex Gordon",
+            "adminId": "a343434",
+            "id": 838485,
+             "events": [
+                {"key": "groups", "value": ["Global Group", "Euro Area"], "oldValue": ["Common Group", "Euro Area"]}
+            ]
+        },
+        {
+            "status": "ACTIVE",
+            "comment": "Change Confirmed Conditionally as per user agreement",
+            "timestamp": "2018-06-11T11:17:00Z",
+            "userName": "Alex Gordon",
+            "userId": "a343434",
+            "id": 838485
+        },
+        {
+             "status": "PENDING_APPROVAL",
+            "comment": "Groups change",
+            "timestamp": "2018-06-11T11:17:00Z",
+            "admin": "Alex Gordon",
+            "adminId": "a343434",
+            "id": 838485,
+             "events": [
+                {"key": "groups", "value": ["Common Group", "Euro Area"], "oldValue": ["Common Group", "Private Traders"]}
+            ]
+        },
+        {
+            "status": "ACTIVE",
+            "comment": "Change Confirmed Conditionally as per user agreement",
+            "timestamp": "2018-06-11T11:17:00Z",
+            "admin": "Alex Gordon",
+            "adminId": "a343434",
+            "id": 838485
+        },
+        {
+            "status": "PENDING_APPROVAL",
+            "comment": "phone change, groups change",
+            "timestamp": "2018-06-11T11:17:00Z",
+            "admin": "Alex Gordon",
+            "adminId": "a343434",
+            "id": 838485,
+             "events": [
+                {"key": "phone", "value": "222-777-4321", "oldValue": "333-777-4321"},
+                {"key": "groups", "value": ["Common Group", "Private Traders"], "oldValue": ["Common Group", "South America", "Private Traders"]}
+            ]
+        },
+        {
+            "status": "ACTIVE",
+            "comment": "Confirmed",
+            "timestamp": "2018-06-11T11:17:00Z",
+            "admin": "Alex Gordon",
+            "adminId": "a343434",
+            "id": 838485
+        },
+        {
+            "status": "PENDING_APPROVAL",
+            "comment": "User created",
+            "timestamp": "2018-06-11T11:17:00Z",
+            "admin": "Alex Gordon",
+            "adminId": "a343434",
+            "id": 838485,
+            "events": [
+                {"key": "email", "value": "qwe@bbb.com", "oldValue": null},
+                {"key": "firstName", "value": "John", "oldValue": null},
+                {"key": "lastName", "value": "Bell", "oldValue": null},
+                {"key": "phone", "value": "1-333-222-3333",  "oldValue": null},
+                {"key": "userId", "value": "alibaba", "oldValue": null},
+                {"key": "userType", "value": "INTERNAL", "oldValue": null},
+                {"key": "groups", "value": ["Common Group", "Euro Area"], "oldValue": null}
+            ]
+        }
+    ],
+    "errors": [
+        {
+            "code": "ORD44",
+            "description": ""
+        }
+    ]
+}
