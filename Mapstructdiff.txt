@@ -1,0 +1,70 @@
+private String name;
+    private Integer age;
+    private String email;
+    // getters and setters
+}
+
+    private String name;
+    private Integer age;
+    private String email;
+    // getters and setters
+}
+
+import org.mapstruct.MappingTarget;
+import org.mapstruct.factory.Mappers;
+
+@Mapper
+public interface MyObjectMapper {
+
+    MyObjectMapper INSTANCE = Mappers.getMapper(MyObjectMapper.class);
+
+    /**
+     * Maps source object to target diff object, only copying non-null fields.
+     * You can customize this method to only set fields that differ.
+     */
+    void updateDiff(MyObject source, @MappingTarget MyObjectDiff target);
+}
+
+    private static final MyObjectMapper mapper = MyObjectMapper.INSTANCE;
+
+    public static MyObjectDiff getDiff(MyObject original, MyObject updated) {
+        MyObjectDiff diff = new MyObjectDiff();
+
+        // Map the updated object to diff, but only populate changed fields
+        mapper.updateDiff(updated, diff);
+
+        // Now, compare original and updated, and nullify unchanged fields
+        if (original != null && updated != null) {
+            if (equalsOrNull(original.getName(), updated.getName())) {
+                diff.setName(null);
+            }
+            if (equalsOrNull(original.getAge(), updated.getAge())) {
+                diff.setAge(null);
+            }
+            if (equalsOrNull(original.getEmail(), updated.getEmail())) {
+                diff.setEmail(null);
+            }
+        }
+        return diff;
+    }
+
+    private static boolean equalsOrNull(Object o1, Object o2) {
+        if (o1 == null && o2 == null) return true;
+        if (o1 == null || o2 == null) return false;
+        return o1.equals(o2);
+    }
+}
+
+MyObject updated = new MyObject("John", 31, "john@example.com");
+
+MyObjectDiff diff = DiffUtil.getDiff(original, updated);
+
+if (diff.getName() != null || diff.getAge() != null || diff.getEmail() != null) {
+    // Fields changed
+    System.out.println("Changed fields:");
+    if (diff.getName() != null) System.out.println("Name");
+    if (diff.getAge() != null) System.out.println("Age");
+    if (diff.getEmail() != null) System.out.println("Email");
+} else {
+    System.out.println("No changes");
+}
