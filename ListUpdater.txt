@@ -1,0 +1,21 @@
+import java.util.List;
+
+public class ListUpdater {
+
+    public static List<Long> getFinalList(List<Long> original, List<Long> added, List<Long> removed) {
+        // Create a new list to avoid mutating the original
+        List<Long> finalList = new ArrayList<>(original);
+
+        // Add all new items
+        if (added != null) {
+            finalList.addAll(added);
+        }
+
+        // Remove all items in the removed list
+        if (removed != null) {
+            finalList.removeAll(removed);
+        }
+
+        return finalList;
+    }
+}
