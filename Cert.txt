@@ -1,0 +1,67 @@
+To ensure your Spring Boot application (running on embedded Tomcat) accepts secure HTTP (i.e., HTTPS), you need to configure SSL/TLS. Here are the typical steps:
+
+1. Generate an SSL Certificate
+
+For testing, you can generate a self-signed certificate:
+
+keytool -genkeypair -alias mycert -keyalg RSA -keysize 2048 -storetype PKCS12 -keystore keystore.p12 -validity 3650
+
+You’ll be prompted for passwords and details.
+
+This creates a keystore.p12 file.
+
+2. Configure Spring Boot to Use SSL
+
+In your application.properties or application.yml:
+
+application.properties
+
+server.port=8443
+server.ssl.key-store=classpath:keystore.p12
+server.ssl.key-store-password=your_password
+server.ssl.key-store-type=PKCS12
+server.ssl.key-alias=mycert
+
+Notes:
+Place keystore.p12 in src/main/resources (classpath).
+Replace your_password with your actual keystore password.
+You can change server.port to 8443 or any port you prefer for HTTPS.
+
+3. Redirect HTTP to HTTPS (optional but recommended)
+
+By default, your app will only accept HTTPS on port 8443.
+To redirect HTTP (port 8080) to HTTPS, you can configure a Tomcat connector:
+
+Create a TomcatServletWebServerFactory bean:
+
+import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
+import org.springframework.boot.web.server.WebServerFactoryCustomizer;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.apache.catalina.connector.Connector;
+
+@Configuration
+public class ServerConfig {
+
+    @Bean
+    public WebServerFactoryCustomizer containerCustomizer() {
+        return factory -> {
+            // Add HTTP connector
+            Connector connector = new Connector(TomcatServletWebServerFactory.DEFAULT_PROTOCOL);
+            connector.setPort(8080);
+            connector.setScheme("http");
+            connector.setSecure(false);
+            connector.setRedirectPort(8443); // redirect HTTP to HTTPS
+            factory.addAdditionalTomcatConnectors(connector);
+        };
+    }
+}
+
+Now, HTTP requests to port 8080 will be redirected to HTTPS on port 8443.
+
+4. Summary
+Generate or obtain an SSL certificate.
+Configure application.properties with SSL settings.
+(Optional) Add HTTP connector and redirect to HTTPS.
+
+Want a full example or help with deploying on a real server (like Nginx or Apache) for production?
