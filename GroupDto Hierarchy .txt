@@ -1,0 +1,83 @@
+public class PermissionDto {
+    private String permissionName;
+    private String permissionKey;
+    private String applicationName;
+    private String applicationKey;
+    private Long applicationPermissionId;
+
+    // constructors, getters, setters
+}
+
+// ApplicationDto
+public class ApplicationDto {
+    private String applicationKey;
+    private String applicationName;
+    private List<PermissionDto> permissions;
+
+    public ApplicationDto(String applicationKey, String applicationName) {
+        this.applicationKey = applicationKey;
+        this.applicationName = applicationName;
+        this.permissions = new ArrayList<>();
+    }
+
+    // getters, setters
+}
+
+// GroupDetailDto
+public class GroupDetailDto {
+    private String groupKey;
+    private String groupName;
+    private List<ApplicationDto> applications;
+
+    public GroupDetailDto(String groupKey, String groupName) {
+        this.groupKey = groupKey;
+        this.groupName = groupName;
+        this.applications = new ArrayList<>();
+    }
+
+    // getters, setters
+}
+
+import java.util.stream.Collectors;
+
+public class GroupMapper {
+
+    public static GroupDetailDto mapGroupToHierarchy(String groupKey, String groupName, List<PermissionDto> permissions) {
+        // Map to hold applicationKey to ApplicationDto
+        Map<String, ApplicationDto> appMap = new LinkedHashMap<>();
+
+        for (PermissionDto perm : permissions) {
+            String appKey = perm.getApplicationKey();
+            String appName = perm.getApplicationName();
+
+            // Check if application already exists
+            ApplicationDto appDto = appMap.get(appKey);
+            if (appDto == null) {
+                appDto = new ApplicationDto(appKey, appName);
+                appMap.put(appKey, appDto);
+            }
+
+            // Add permission to application
+            appDto.getPermissions().add(perm);
+        }
+
+        // Create GroupDetailDto
+        GroupDetailDto groupDetail = new GroupDetailDto(groupKey, groupName);
+        groupDetail.setApplications(new ArrayList<>(appMap.values()));
+
+        return groupDetail;
+    }
+}
+
+String groupKey = "G1";
+String groupName = "Admins";
+
+List<PermissionDto> permissions = Arrays.asList(
+    new PermissionDto("Read", "PERM_READ", "AppA", "APP_A", 101L),
+    new PermissionDto("Write", "PERM_WRITE", "AppA", "APP_A", 102L),
+    new PermissionDto("Delete", "PERM_DELETE", "AppB", "APP_B", 103L)
+);
+
+GroupDetailDto groupHierarchy = GroupMapper.mapGroupToHierarchy(groupKey, groupName, permissions);
+
+// Now, groupHierarchy contains Applications with their Permissions organized hierarchically.
