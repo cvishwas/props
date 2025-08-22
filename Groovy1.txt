@@ -1,0 +1,40 @@
+import com.yourpackage.dto.PermissionDto
+import com.yourpackage.dto.ApplicationDto
+import com.yourpackage.dto.GroupDetailDto
+import com.yourpackage.mapper.GroupMapper
+
+class GroupMapperSpec extends Specification {
+
+    def "should correctly organize permissions into applications hierarchy"() {
+        given:
+        String groupKey = "G1"
+        String groupName = "Admins"
+        List<PermissionDto> permissions = [
+            new PermissionDto("Read", "PERM_READ", "AppX", "APP_X", 1L),
+            new PermissionDto("Write", "PERM_WRITE", "AppX", "APP_X", 2L),
+            new PermissionDto("Delete", "PERM_DELETE", "AppY", "APP_Y", 3L)
+        ]
+
+        when:
+        GroupDetailDto result = GroupMapper.mapGroupToHierarchy(groupKey, groupName, permissions)
+
+        then:
+        result.groupKey == "G1"
+        result.groupName == "Admins"
+        result.applications.size() == 2
+
+        // Application "AppX"
+        def appX = result.applications.find { it.applicationKey == "APP_X" }
+        appX != null
+        appX.applicationName == "AppX"
+        appX.permissions.size() == 2
+        appX.permissions*.permissionName.containsAll(["Read", "Write"])
+
+        // Application "AppY"
+        def appY = result.applications.find { it.applicationKey == "APP_Y" }
+        appY != null
+        appY.applicationName == "AppY"
+        appY.permissions.size() == 1
+        appY.permissions[0].permissionName == "Delete"
+    }
+}
