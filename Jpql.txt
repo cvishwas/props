@@ -1,0 +1,3 @@
+@Query("SELECT r FROM Role r JOIN OrgRole orr ON r.roleId = orr.roleId WHERE orr.orgId = :orgId")
+    List<Role> findRolesByOrgId(@Param("orgId") String orgId);
+}
