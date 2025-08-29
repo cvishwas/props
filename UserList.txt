@@ -1,0 +1,7 @@
+// Eagerly fetch roles and resources (adjust paths to your model)
+    @Query("select distinct u from UserEntity u " +
+           "left join fetch u.roles r " +          // User <-> Roles
+           "left join fetch r.name roName " +       // if you have a simple string path; otherwise skip
+           "left join fetch r.resources res")       // Role -> Resources
+    List<UserEntity> findAllWithRolesAndResources();
+}
