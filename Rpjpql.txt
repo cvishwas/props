@@ -1,0 +1,6 @@
+// Fetch resources with their permissions in one query
+    @Query("select distinct r from ResourceEntity r " +
+           "left join fetch r.resourcePermissions rp " +          // Resource_Permissions
+           "left join fetch rp.permission p")                    // Permission
+    List<ResourceEntity> findAllWithPermissions();
+}
