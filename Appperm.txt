@@ -1,0 +1,75 @@
+@Table(name = "application")
+public class Application {
+    @Id
+    @Column(name = "application_id")
+    private Long applicationId;
+
+    @Column(name = "application_name")
+    private String applicationName;
+
+    @Column(name = "application_key")
+    private String applicationKey;
+
+    // getters and setters
+}
+
+@Entity
+@Table(name = "permission")
+public class Permission {
+    @Id
+    @Column(name = "permission_id")
+    private Long permissionId;
+
+    @Column(name = "permission_name")
+    private String permissionName;
+
+    @Column(name = "application_id")
+    private Long applicationId;
+
+    // getters and setters
+}
+
+    @Query(value = "SELECT a.application_id, a.application_name, a.application_key, " +
+                   "p.permission_id, p.permission_name " +
+                   "FROM application a " +
+                   "LEFT JOIN permission p ON a.application_id = p.application_id " +
+                   "ORDER BY a.application_id, p.permission_id", nativeQuery = true)
+    List<Object[]> findApplicationsWithPermissions();
+}
+
+    List<Object[]> results = repository.findApplicationsWithPermissions();
+
+    Map<Long, Application> appMap = new LinkedHashMap<>();
+    Map<Long, List<Permission>> permissionsMap = new HashMap<>();
+
+    for (Object[] row : results) {
+        Long appId = (Long) row[0];
+        String appName = (String) row[1];
+        String appKey = (String) row[2];
+
+        Long permId = (Long) row[3];
+        String permName = (String) row[4];
+
+        Application app = appMap.computeIfAbsent(appId, id -> {
+            Application a = new Application();
+            a.setApplicationId(id);
+            a.setApplicationName(appName);
+            a.setApplicationKey(appKey);
+            return a;
+        });
+
+        if (permId != null) {
+            Permission p = new Permission();
+            p.setPermissionId(permId);
+            p.setPermissionName(permName);
+            permissionsMap.computeIfAbsent(appId, k -> new ArrayList<>()).add(p);
+        }
+    }
+
+    // Now, associate permissions with applications
+    for (Long appId : appMap.keySet()) {
+        appMap.get(appId).setPermissions(permissionsMap.getOrDefault(appId, Collections.emptyList()));
+    }
+
+    return appMap;
+}
