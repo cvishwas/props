@@ -1,0 +1,7 @@
+@Query(value = "SELECT r.resource_id, r.resource_key, r.resource_name, r.resource_description, " +
+                   "rp.resource_permission_id, rp.permission_name, rp.permission_key, rp.permission_description " +
+                   "FROM resources r " +
+                   "LEFT JOIN resource_permissions rp ON r.resource_id = rp.resource_id " +
+                   "ORDER BY r.resource_id, rp.resource_permission_id", nativeQuery = true)
+    List<Object[]> findResourcesWithPermissions();
+}
