@@ -1,0 +1,137 @@
+@Entity
+@Table(name = "Resource_Permissions")
+public class ResourcePermission {
+    @EmbeddedId
+    private ResourcePermissionId id;
+
+    @ManyToOne
+    @MapsId("resourceId")
+    @JoinColumn(name = "Resource_id")
+    private ResourceEntity resource;
+
+    @ManyToOne
+    @MapsId("permissionId")
+    @JoinColumn(name = "Permission_id")
+    private Permission permission;
+
+    // composite key
+    @Embeddable
+    public static class ResourcePermissionId implements Serializable {
+        @Column(name = "Resource_id")
+        private Long resourceId;
+
+        @Column(name = "Permission_id")
+        private Long permissionId;
+
+        // equals/hashCode
+    }
+}
+
+@Entity
+@Table(name = "Role")
+public class Role {
+    @Id
+    @Column(name = "Role_Id")
+    private Long id;
+
+    @Column(name = "Role_Name")
+    private String name;
+
+    @Column(name = "Role_desc")
+    private String description;
+
+    // Relationship to Role_Resource_Permissions
+    @OneToMany(mappedBy = "role")
+    private Set<RoleResourcePermission> roleResourcePermissions = new HashSet<>();
+
+    // Getters/Setters
+}
+
+@Entity
+@Table(name = "Role_REsource_Permissions") // note the spelling from your text
+public class RoleResourcePermission {
+    @EmbeddedId
+    private RoleResourcePermissionId id;
+
+    @ManyToOne
+    @MapsId("roleId")
+    @JoinColumn(name = "Role_Id")
+    private Role role;
+
+    @ManyToOne
+    @MapsId("resourcePermissionId")
+    @JoinColumn(name = "Resource_Permissions_id")
+    private ResourcePermission resourcePermission;
+
+    // composite key
+    @Embeddable
+    public static class RoleResourcePermissionId implements Serializable {
+        @Column(name = "Role_Id")
+        private Long roleId;
+
+        @Column(name = "Resource_Permissions_id")
+        private Long resourcePermissionId;
+
+        // equals/hashCode
+    }
+}
+
+public interface RoleRepository extends JpaRepository<Role, Long> {
+
+    @Query("select distinct r from Role r " +
+           "left join fetch r.roleResourcePermissions rp " +
+           "left join fetch rp.resourcePermission rp2 " +
+           "left join fetch rp2.resource resource " +
+           "left join fetch rp2.permission permission ")
+    List<Role> findAllWithResourcesAndPermissions();
+}
+
+@RequiredArgsConstructor
+public class RoleHierarchyService {
+    private final RoleRepository roleRepository;
+
+    public List<RoleHierarchyDTO> getAllRolesHierarchy() {
+        List<Role> roles = roleRepository.findAllWithResourcesAndPermissions();
+
+        return roles.stream().map(this::toDto).collect(Collectors.toList());
+    }
+
+    private RoleHierarchyDTO toDto(Role role) {
+        RoleHierarchyDTO dto = new RoleHierarchyDTO();
+        dto.setRoleId(role.getId());
+        dto.setRoleName(role.getName());
+        dto.setRoleDescription(role.getDescription());
+
+        Map<Long, ResourceDTO> resourceMap = new LinkedHashMap<>();
+        for (RoleResourcePermission rp : role.getRoleResourcePermissions()) {
+            ResourcePermission rpEntity = rp.getResourcePermission();
+            ResourceEntity resource = rpEntity.getResource();
+            Long resId = resource.getId();
+
+            ResourceDTO resDto = resourceMap.computeIfAbsent(resId, k -> {
+                ResourceDTO rdto = new ResourceDTO();
+                rdto.setResourceId(resource.getId());
+                rdto.setResourceName(resource.getName());
+                rdto.setResourceDescription(resource.getDescription());
+                rdto.setPermissions(new ArrayList<>());
+                return rdto;
+            });
+
+            Permission permission = rpEntity.getPermission();
+            PermissionDTO permDto = new PermissionDTO();
+            permDto.setPermissionId(permission.getId());
+            permDto.setPermissionName(permission.getName());
+            permDto.setPermissionDescription(permission.getDescription());
+
+            // avoid duplicates
+            boolean exists = resDto.getPermissions().stream()
+                    .anyMatch(p -> p.getPermissionId().equals(permission.getId()));
+            if (!exists) {
+                resDto.getPermissions().add(permDto);
+            }
+        }
+
+        dto.setResources(new ArrayList<>(resourceMap.values()));
+        return dto;
+    }
+}
