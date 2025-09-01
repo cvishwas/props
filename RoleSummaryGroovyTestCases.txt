@@ -1,0 +1,132 @@
+import spock.lang.Specification
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.context.ActiveProfiles
+import org.springframework.transaction.annotation.Transactional
+
+import com.yourcompany.yourapp.dto.RoleDashboardDto
+import com.yourcompany.yourapp.domain.Role
+import com.yourcompany.yourapp.domain.Resource
+import com.yourcompany.yourapp.domain.ResourcePermissions
+import com.yourcompany.yourapp.domain.Permission
+import com.yourcompany.yourapp.domain.RoleResourcePermissions
+import com.yourcompany.yourapp.repository.RoleRepository
+import com.yourcompany.yourapp.repository.ResourceRepository
+import com.yourcompany.yourapp.repository.PermissionRepository
+import com.yourcompany.yourapp.repository.RoleResourcePermissionsRepository
+import com.yourcompany.yourapp.repository.ResourcePermissionsRepository
+import com.yourcompany.yourapp.service.RoleSummaryService
+
+@SpringBootTest
+@ActiveProfiles("test")
+@Transactional
+class RoleSummaryServiceSpec extends Specification {
+
+    @Autowired
+    RoleSummaryService roleSummaryService
+
+    @Autowired
+    RoleRepository roleRepository
+
+    @Autowired
+    ResourceRepository resourceRepository
+
+    @Autowired
+    PermissionRepository permissionRepository
+
+    @Autowired
+    ResourcePermissionsRepository resourcePermissionsRepository
+
+    @Autowired
+    RoleResourcePermissionsRepository roleResourcePermissionsRepository
+
+    def setup() {
+        // Clean up repositories if needed (depending on test config)
+        roleResourcePermissionsRepository.deleteAll()
+        // Start with a clean slate other repos if necessary
+        roleResourcePermissionsRepository.flush?.call()
+    }
+
+    def "getAllRoleSummaries should return roles with proper roleApplications populated"() {
+        given: "a set of roles, permissions, resources and mappings"
+        // Create resources
+        def res1 = new Resource(null, "Resource A", "Desc A")
+        def res2 = new Resource(null, "Resource B", "Desc B")
+        resourceRepository.saveAll([res1, res2])
+
+        // Create permissions for resources
+        def p1 = new Permission(null, "READ_A", "Read A")
+        def p2 = new Permission(null, "WRITE_A", "Write A")
+        def p3 = new Permission(null, "READ_B", "Read B")
+        permissionRepository.saveAll([p1, p2, p3])
+
+        // Link resource_permissions join table
+        def rp1 = new ResourcePermissions(null, res1, p1)
+        def rp2 = new ResourcePermissions(null, res1, p2)
+        def rp3 = new ResourcePermissions(null, res2, p3)
+        resourcePermissionsRepository.saveAll([rp1, rp2, rp3])
+
+        // Create roles
+        def role1 = new Role(null, "Admin", "Admin role", "ACTIVE")
+        def role2 = new Role(null, "Viewer", "ReadOnly role", "ACTIVE")
+        roleRepository.saveAll([role1, role2])
+
+        // Link roles to resource_permissions via RoleResourcePermissions
+        def rrp1 = new RoleResourcePermissions(null, role1, rp1)
+        def rrp2 = new RoleResourcePermissions(null, role1, rp2)
+        def rrp3 = new RoleResourcePermissions(null, role2, rp3)
+        roleResourcePermissionsRepository.saveAll([rrp1, rrp2, rrp3])
+
+        // Prepare last update fields on roles if required by your entity model
+        // (Set via setters or constructor as per your JPA entities)
+
+        when: "the service fetches role summaries"
+        List<RoleDashboardDto> results = roleSummaryService.getAllRoleSummaries()
+
+        then: "we get a non-empty result with correct role details and applications"
+        results.size() == 2
+
+        def adminDto = results.find { it.roleName == "Admin" }
+        def viewerDto = results.find { it.roleName == "Viewer" }
+
+        adminDto != null
+        viewerDto != null
+
+        and:
+        adminDto.roleId != null
+        adminDto.roleName == "Admin"
+        adminDto.roleDescription == "Admin role"
+        adminDto.status != null // depending on your defaulting
+        adminDto.roleApplications != null
+        adminDto.roleApplications.containsAll(["Resource A - READ_A", "Resource A - WRITE_A"]) // adjust to your actual aggregation format
+
+        and:
+        viewerDto.roleId != null
+        viewerDto.roleName == "Viewer"
+        viewerDto.roleApplications.contains("Resource B - READ_B")
+
+        // Optional: verify lastUpdated fields if your service populates them
+        // and isExternal/isEditable fields depending on how you compute them
+
+        cleanup: "optional cleanup if needed"
+
+    }
+
+    // Optional negative test
+    def "getAllRoleSummaries should handle empty data gracefully"() {
+        given:
+        // Ensure repositories are empty or in a known state
+        roleRepository.deleteAll()
+        resourceRepository.deleteAll()
+        permissionRepository.deleteAll()
+        resourcePermissionsRepository.deleteAll()
+        roleResourcePermissionsRepository.deleteAll()
+
+        when:
+        List<RoleDashboardDto> results = roleSummaryService.getAllRoleSummaries()
+
+        then:
+        results != null
+        results.isEmpty()
+    }
+}
