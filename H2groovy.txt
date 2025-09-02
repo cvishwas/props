@@ -1,0 +1,166 @@
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.yourcompany</groupId>
+  <artifactId>yourapp</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <name>YourApp</name>
+  <packaging>jar</packaging>
+
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <!-- Use a version compatible with your JDK (e.g., 3.1.x for Java 17+) -->
+    <version>3.1.4</version>
+    <relativePath/> <!-- lookup parent from repository -->
+  </parent>
+
+  <properties>
+    <java.version>17</java.version>
+    <groovy.version>3.0.9</groovy.version>
+    <spock.version>2.0-groovy-3.0</spock.version>
+  </properties>
+
+  <dependencies>
+    <!-- Core Spring Boot test support (includes SpringBootTest, JUnit 5, Mockito, etc.) -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+      <!-- Exclude jaxb if you don't need it in newer JDKs -->
+      <exclusions>
+        <exclusion>
+          <groupId>org.junit.vintage</groupId>
+          <artifactId>junit-vintage-engine</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+
+    <!-- Groovy and Spock for tests -->
+    <dependency>
+      <groupId>org.codehaus.groovy</groupId>
+      <artifactId>groovy</artifactId>
+      <version>${groovy.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.spockframework</groupId>
+      <artifactId>spock-core</artifactId>
+      <version>${spock.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- In-memory DB for tests (H2) -->
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- (Optional) For nicer Oracle-style SQL in H2 mode, if you rely on Oracle dialect -->
+    <!-- Not required if you’re content with H2Dialect -->
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- Compiler plugin to use Java 17 -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.11.0</version>
+        <configuration>
+          <source>${java.version}</source>
+          <target>${java.version}</target>
+        </configuration>
+      </plugin>
+
+      <!-- Surefire for running tests -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.2.1</version>
+        <configuration>
+          <includes>
+            <include>**/*Test.java</include>
+            <include>**/*Spec.groovy</include>
+          </includes>
+          <!-- If you want to run Spock/Groovy tests with JUnit 5, this is fine -->
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
+
+spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=Oracle
+spring.datasource.driver-class-name=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=
+spring.datasource.hikari.hikari.maximum-pool-size=10
+
+# JPA / Hibernate
+spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
+spring.jpa.hibernate.ddl-auto=create-drop
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+spring.jpa.generate_statistics=true
+
+# Optional: enable SQL logging details
+spring.jpa.properties.hibernate.type=trace
+# If you want to see bind parameters
+# spring.jpa.properties.hibernate.type.descriptor.sql.BasicBinder=TRACE
+
+# Show SQL (redundant with show-sql, but explicit)
+spring.main.banner-mode=log
+
+# Testing profile active (if you rely on it to pick test config)
+spring.profiles.active=test
+
+# DataSource initialization (optional)
+# If you want a schema be loaded from SQL:
+# spring.sql.init.mode=always
+# spring.sql.init.continue-on-error=true
+# spring.sql.init.url=classpath:/db/schema.sql
+
+# (Optional) Disable page size or other defaults
+# spring.jpa.properties.hibernate.jdbc.batch_size=50
+# spring.jpa.properties.hibernate.jdbc.fetch_size=50
+
+# Rerun nonstrict mode for testing if needed
+# spring.jpa.open-in-view=false
+
+# Logging (optional)
+logging.level.org.hibernate.SQL=DEBUG
+logging.level.org.hibernate.type.descriptor.sql.BasicBinder=TRACE
+
+import spock.lang.Specification
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.context.ActiveProfiles
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.transaction.annotation.Transactional
+import com.yourcompany.yourapp.entity.Resource
+import com.yourcompany.yourapp.repository.ResourceRepository
+
+@SpringBootTest
+@ActiveProfiles("test")
+@Transactional
+class ResourceInMemoryDbSpec extends Specification {
+
+    @Autowired
+    ResourceRepository resourceRepository
+
+    def "saveAll persists to in-memory H2 and can be retrieved"() {
+        given:
+        def r1 = new Resource(null, "R1", "Desc 1")
+        def r2 = new Resource(null, "R2", "Desc 2")
+
+        when:
+        resourceRepository.saveAll([r1, r2])
+        resourceRepository.flush()
+        def all = resourceRepository.findAll()
+
+        then:
+        all.size() == 2
+    }
+}
