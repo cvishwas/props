@@ -1,0 +1,24 @@
+r.resource_id,
+    r.resource_name,
+    r.resource_desc,
+    p.permission_id,
+    p.permission_name,
+    p.permission_desc
+FROM
+    Users u
+    -- user -> roles
+    JOIN Users_Roles ur ON ur.user_id = u.user_id
+    JOIN Roles ro ON ro.role_id = ur.role_id
+    -- role -> resource_permissions
+    JOIN Role_Resource_Permissions rrp ON rrp.role_id = ro.role_id
+    -- resource_permission -> permission
+    JOIN Resource_Permissions rp ON rp.resource_permission_id = rrp.resource_permission_id
+    -- resource_permission -> resource
+    JOIN Resources r ON r.resource_id = rp.resource_id
+    -- resource_permission -> permission
+    JOIN Permissions p ON p.permission_id = rp.permission_id
+WHERE
+    u.user_id = :userId
+ORDER BY
+    r.resource_id,
+    p.permission_id;
