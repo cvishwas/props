@@ -1,0 +1,94 @@
+package com.example.entitlements.repository;
+
+import com.example.entitlements.model.Resource;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+
+public interface ResourceRepository extends JpaRepository<Resource, Long> {
+
+    @Query("""
+        SELECT DISTINCT r
+        FROM User u
+        JOIN u.userRoles ur
+        JOIN ur.role ro
+        JOIN ro.roleResourcePermissions ropr
+        JOIN ropr.resourcePermission rp
+        JOIN rp.resource r
+        JOIN rp.permission p
+        WHERE u.id = :userId
+        """)
+    List<Resource> findResourcesWithPermissionsByUserId(@Param("userId") Long userId);
+}
+
+package com.example.entitlements.service;
+
+import com.example.entitlements.dto.PermissionDto;
+import com.example.entitlements.dto.ResourceHierarchyDto;
+import com.example.entitlements.model.Resource;
+import com.example.entitlements.model.ResourcePermission;
+import com.example.entitlements.repository.ResourceRepository;
+import org.springframework.stereotype.Service;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+@Service
+public class EntitlementService {
+
+    private final ResourceRepository resourceRepository;
+
+    public EntitlementService(ResourceRepository resourceRepository) {
+        this.resourceRepository = resourceRepository;
+    }
+
+    public List<ResourceHierarchyDto> getResourceHierarchyForUser(Long userId) {
+        List<Resource> resources = resourceRepository.findResourcesWithPermissionsByUserId(userId);
+
+        // Build a map: resource -> set of permissions
+        Map<Long, Resource> resMap = new LinkedHashMap<>();
+        Map<Long, List<PermissionDto>> permsByResource = new LinkedHashMap<>();
+
+        for (Resource r : resources) {
+            resMap.putIfAbsent(r.getId(), r);
+
+            // Collect permissions for this resource
+            List<ResourcePermission> rpList = new ArrayList<>(r.getResourcePermissions());
+            for (ResourcePermission rp : rpList) {
+                if (rp.getPermission() != null) {
+                    Long resId = r.getId();
+                    PermDtoHolder holder = null;
+                    // We'll extract permission fields; adjust if your mappings differ
+                }
+            }
+        }
+
+        // Simpler approach: rely on the fact that Resource has a collection of ResourcePermission
+        // and each ResourcePermission links to a Permission.
+        List<ResourceHierarchyDto> result = new ArrayList<>();
+
+        for (Resource r : resources) {
+            List<PermissionDto> pDtos = r.getResourcePermissions().stream()
+                .filter(rp -> rp.getPermission() != null)
+                .map(rp -> new PermissionDto(
+                        rp.getPermission().getId(),
+                        rp.getPermission().getName() + " - " + rp.getPermission().getDescription() // or adjust fields
+                ))
+                .distinct()
+                .collect(Collectors.toList());
+
+            ResourceHierarchyDto dto = new ResourceHierarchyDto(
+                    r.getId(),
+                    r.getName(),
+                    r.getDescription(),
+                    pDtos
+            );
+            result.add(dto);
+        }
+
+        // If Resource.getResourcePermissions() is lazy, force initialize as needed
+        return result;
+    }
+}
