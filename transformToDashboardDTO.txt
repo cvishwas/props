@@ -1,0 +1,35 @@
+public List<UsersDataDashboardDTO> transformToDashboardDTO(List<User> users) {
+    // Group by unique user (avoid duplicates caused by join fetch)
+    Map<Long, User> uniqueUsers = users.stream()
+            .collect(Collectors.toMap(
+                    User::getUserKey,
+                    u -> u,
+                    (u1, u2) -> u1  // keep first occurrence
+            ));
+
+    return uniqueUsers.values().stream()
+            .map(user -> {
+                Set<String> roles = new HashSet<>();
+                Set<String> resources = new HashSet<>();
+
+                for (UserRole userRole : user.getUserRole()) {
+                    Role role = userRole.getRole();
+                    roles.add(role.getRoleName());
+
+                    for (RoleResourcePermission rrp : role.getRoleResourcePermissions()) {
+                        ResourcePermissions rp = rrp.getResourcePermissions();
+                        if (rp != null && rp.getResource() != null) {
+                            resources.add(rp.getResource().getResourceName());
+                        }
+                    }
+                }
+
+                UsersDataDashboardDTO dto = new UsersDataDashboardDTO();
+                dto.setFirstName(user.getFirstName());
+                dto.setLastName(user.getLastName());
+                dto.setUserRoles(new ArrayList<>(roles));
+                dto.setUserResources(new ArrayList<>(resources));
+                return dto;
+            })
+            .toList();
+}
