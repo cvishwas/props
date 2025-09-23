@@ -1,0 +1,12 @@
+u.userId,
+    u.first_name,
+    u.last_name,
+    u.loginId,
+    u.lastUpdatedUserLoginId,
+    COALESCE(up.first_name || ' ' || up.last_name, 'system') AS updater_full_name
+FROM
+    users u
+LEFT JOIN
+    users up
+ON
+    u.lastUpdatedUserLoginId = up.loginId;
