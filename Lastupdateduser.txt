@@ -1,0 +1,102 @@
+Adding lastUpdatedUser to the JPQL result
+
+Assumptions
+There is a field lastUpdatedUserId on one of your entities (commonly on Resource or a similar audit field). I’ll assume:
+  The field is in the User entity as lastUpdatedUserId, or you want the last updatable user’s full name via a join to the User table.
+You want to retrieve the full name (e.g., concatenation of first_name and last_name or a single fullName field) for that user in the same query that fetches Users, Roles, and Resources.
+
+If your setup is:
+User has id, username, firstName, lastName, etc.
+There is a field lastUpdatedUserId on User (or on a child entity) that references Users.user_id of the user who last updated the record.
+
+Approach A: join to the updater user (assuming lastUpdatedUserId is on User)
+
+JPQL query (start from User, fetch roles/resources, and resolve the updater’s full name):
+
+@Query("""
+    SELECT DISTINCT u
+    FROM User u
+    LEFT JOIN FETCH u.userRoles ur
+    LEFT JOIN FETCH ur.role ro
+    LEFT JOIN FETCH ro.roleResourcePermissions ropr
+    LEFT JOIN FETCH ropr.resourcePermission rp
+    LEFT JOIN FETCH rp.resource r
+    LEFT JOIN FETCH rp.permission p
+    LEFT JOIN FETCH u.updater uupd
+""")
+
+Notes for the updater:
+If lastUpdatedUserId is a scalar field on User, and you want to fetch the updater as a named association, you need an entity association like:
+  User.updater (a @ManyToOne to User)
+  Then fetch join: LEFT JOIN FETCH u.updater up
+If you only have lastUpdatedUserId (a FK) but no association, you can map an extra derived field in projection. JPQL cannot directly "join" by id unless there is an entity relation.
+
+Approach B: If you do have a self-referential updater relation (User has lastUpdatedUser):
+
+@Entity
+@Table(name = "Users")
+class User {
+  @Id Long id;
+  String firstName;
+  String lastName;
+  // ...
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "last_updated_user_id")
+  private User updater;
+  // getters
+}
+
+Then you can fetch the updater and produce a full name in Java, or project it in JPQL as a concatenated string:
+
+@Query("""
+    SELECT DISTINCT u, CONCAT(COALESCE(up.firstName,''), ' ', COALESCE(up.lastName,'')) AS updaterFullName
+    FROM User u
+    LEFT JOIN FETCH u.userRoles ur
+    LEFT JOIN FETCH ur.role ro
+    LEFT JOIN FETCH ro.roleResourcePermissions ropr
+    LEFT JOIN FETCH ropr.resourcePermission rp
+    LEFT JOIN FETCH rp.resource r
+    LEFT JOIN FETCH rp.permission p
+    LEFT JOIN FETCH u.updater up
+""")
+
+But note: JPQL constructor expressions expect a DTO with a matching constructor. If you want both User entity and updater full name in one shot, you’ll typically:
+Either fetch the updater as a joined association (as up above) and compute the full name in Java.
+Or project into a DTO with a constructor that takes the updaterFullName as a string.
+
+Example DTO (adjust to your needs):
+
+public class UserRolesResourcesDto {
+  private Long userId;
+  private String username;
+  private String updaterFullName;
+  private Long roleId;
+  private String roleName;
+  private Long resourceId;
+  private String resourceName;
+  // constructor, getters
+}
+
+JPQL projection into DTO (illustrative; may require breaking into multiple queries or using a native query for a clean single-row-per-combination result):
+
+@Query("""
+    SELECT DISTINCT new com.example.dto.UserRolesResourcesDto(
+        u.id, u.username,
+        CONCAT(COALESCE(up.firstName,''), ' ', COALESCE(up.lastName,'')),
+        ro.id, ro.name,
+        r.id, r.name
+    )
+    FROM User u
+    LEFT JOIN u.updater up
+    LEFT JOIN u.userRoles ur
+    LEFT JOIN ur.role ro
+    LEFT JOIN ro.roleResourcePermissions ropr
+    LEFT JOIN ropr.resourcePermission rp
+    LEFT JOIN rp.resource r
+""")
+
+Key points
+If lastUpdatedUserId is not mapped as an association, you’ll need to map an updater relation (self-join) or switch to a native query to fetch the updater’s name via a subquery.
+JPQL can fetch by starting from User and traversing roles and resources as shown; avoid Cartesian explosion by using DISTINCT and careful fetch strategies.
+
+Would you like me to tailor the exact JPQL to your exact entity field names (e.g., if updater is named lastUpdatedUser, or if you store fullName instead of first/last), and provide a concrete DTO + repository method accordingly? If you share your entity snippets for User (especially fields lastUpdatedUserId or updater), I can produce a precise query.
