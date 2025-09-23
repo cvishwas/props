@@ -1,0 +1,303 @@
+// User.java
+@Entity
+@Table(name = "users")
+public class User {
+    @Id
+    private String userId;
+    private String username;
+    private String email;
+
+    @ManyToMany
+    @JoinTable(
+        name = "users_roles",
+        joinColumns = @JoinColumn(name = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+    private Set<Role> roles = new HashSet<>();
+}
+
+
+// Role.java
+@Entity
+@Table(name = "roles")
+public class Role {
+    @Id
+    private String roleId;
+    private String roleName;
+    private String roleDesc;
+
+    @ManyToMany
+    @JoinTable(
+        name = "role_resource_permissions",
+        joinColumns = @JoinColumn(name = "role_id"),
+        inverseJoinColumns = @JoinColumn(name = "resource_permission_id")
+    )
+    private Set<ResourcePermission> resourcePermissions = new HashSet<>();
+}
+
+// Resource.java
+@Entity
+@Table(name = "resources")
+public class Resource {
+    @Id
+    private String resourceId;
+    private String resourceName;
+    private String resourceDesc;
+
+    @OneToMany(mappedBy = "resource")
+    private Set<ResourcePermission> resourcePermissions = new HashSet<>();
+}
+
+// Permission.java
+@Entity
+@Table(name = "permissions")
+public class Permission {
+    @Id
+    private String permissionId;
+    private String permissionName;
+    private String permissionDesc;
+}
+
+// ResourcePermission.java
+@Entity
+@Table(name = "resource_permissions")
+public class ResourcePermission {
+    @Id
+    private String resourcePermissionId;
+
+    @ManyToOne
+    @JoinColumn(name = "resource_id")
+    private Resource resource;
+
+    @ManyToOne
+    @JoinColumn(name = "permission_id")
+    private Permission permission;
+}
+
+public record UserRolePermissionDTO(
+    String userId,
+    String username,
+    String roleId,
+    String roleName,
+    String resourceId,
+    String resourceName,
+    String permissionId,
+    String permissionName
+) {}
+
+@Repository
+public interface UserRepository extends JpaRepository<User, String> {
+
+    @Query("""
+        SELECT new com.example.demo.dto.UserRolePermissionDTO(
+            u.userId,
+            u.username,
+            r.roleId,
+            r.roleName,
+            res.resourceId,
+            res.resourceName,
+            p.permissionId,
+            p.permissionName
+        )
+        FROM User u
+        JOIN u.roles r
+        JOIN r.resourcePermissions rp
+        JOIN rp.resource res
+        JOIN rp.permission p
+        """)
+    List<UserRolePermissionDTO> fetchUserRolesAndPermissions();
+}
+
+@Service
+public class UserService {
+    private final UserRepository userRepository;
+
+    public UserService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+
+    public List<UserRolePermissionDTO> getAllUserRolePermissions() {
+        return userRepository.fetchUserRolesAndPermissions();
+    }
+}
+
+@RestController
+@RequestMapping("/users")
+public class UserController {
+    private final UserService userService;
+
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @GetMapping("/roles-permissions")
+    public List<UserRolePermissionDTO> getUserRolesPermissions() {
+        return userService.getAllUserRolePermissions();
+    }
+}
+
+public record PermissionDTO(String permissionId, String permissionName) {}
+
+public record ResourceDTO(
+    String resourceId,
+    String resourceName,
+    List<PermissionDTO> permissions
+) {}
+
+public record RoleDTO(
+    String roleId,
+    String roleName,
+    List<ResourceDTO> resources
+) {}
+
+public record UserDTO(
+    String userId,
+    String username,
+    List<RoleDTO> roles
+) {}
+
+@Service
+public class UserService {
+    private final UserRepository userRepository;
+
+    public UserService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+
+    public List<UserDTO> getAllUserRolePermissions() {
+        List<UserRolePermissionDTO> flatList = userRepository.fetchUserRolesAndPermissions();
+
+        // Group by User
+        Map<String, Map<String, Map<String, List<UserRolePermissionDTO>>>> grouped =
+                flatList.stream()
+                        .collect(Collectors.groupingBy(
+                                UserRolePermissionDTO::userId,
+                                Collectors.groupingBy(
+                                        UserRolePermissionDTO::roleId,
+                                        Collectors.groupingBy(UserRolePermissionDTO::resourceId)
+                                )
+                        ));
+
+        // Build hierarchy
+        return grouped.entrySet().stream()
+                .map(userEntry -> {
+                    String userId = userEntry.getKey();
+                    String username = flatList.stream()
+                            .filter(dto -> dto.userId().equals(userId))
+                            .findFirst().get().username();
+
+                    List<RoleDTO> roles = userEntry.getValue().entrySet().stream()
+                            .map(roleEntry -> {
+                                String roleId = roleEntry.getKey();
+                                String roleName = flatList.stream()
+                                        .filter(dto -> dto.roleId().equals(roleId))
+                                        .findFirst().get().roleName();
+
+                                List<ResourceDTO> resources = roleEntry.getValue().entrySet().stream()
+                                        .map(resourceEntry -> {
+                                            String resourceId = resourceEntry.getKey();
+                                            String resourceName = flatList.stream()
+                                                    .filter(dto -> dto.resourceId().equals(resourceId))
+                                                    .findFirst().get().resourceName();
+
+                                            List<PermissionDTO> permissions = resourceEntry.getValue().stream()
+                                                    .map(dto -> new PermissionDTO(dto.permissionId(), dto.permissionName()))
+                                                    .distinct()
+                                                    .toList();
+
+                                            return new ResourceDTO(resourceId, resourceName, permissions);
+                                        })
+                                        .toList();
+
+                                return new RoleDTO(roleId, roleName, resources);
+                            })
+                            .toList();
+
+                    return new UserDTO(userId, username, roles);
+                })
+                .toList();
+    }
+}
+
+@RestController
+@RequestMapping("/users")
+public class UserController {
+    private final UserService userService;
+
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @GetMapping("/roles-permissions")
+    public List<UserDTO> getUserRolesPermissions() {
+        return userService.getAllUserRolePermissions();
+    }
+}
+
+
+@Service
+public class UserService {
+    private final UserRepository userRepository;
+
+    public UserService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+
+    public List<UserDTO> getAllUserRolePermissions() {
+        List<UserRolePermissionDTO> flatList = userRepository.fetchUserRolesAndPermissions();
+
+        // Build lookup maps for quick access
+        Map<String, String> userNameMap = flatList.stream()
+                .collect(Collectors.toMap(UserRolePermissionDTO::userId, UserRolePermissionDTO::username, (a, b) -> a));
+
+        Map<String, String> roleNameMap = flatList.stream()
+                .collect(Collectors.toMap(UserRolePermissionDTO::roleId, UserRolePermissionDTO::roleName, (a, b) -> a));
+
+        Map<String, String> resourceNameMap = flatList.stream()
+                .collect(Collectors.toMap(UserRolePermissionDTO::resourceId, UserRolePermissionDTO::resourceName, (a, b) -> a));
+
+        // Group by user → role → resource
+        Map<String, Map<String, Map<String, List<UserRolePermissionDTO>>>> grouped =
+                flatList.stream()
+                        .collect(Collectors.groupingBy(
+                                UserRolePermissionDTO::userId,
+                                Collectors.groupingBy(
+                                        UserRolePermissionDTO::roleId,
+                                        Collectors.groupingBy(UserRolePermissionDTO::resourceId)
+                                )
+                        ));
+
+        // Build hierarchy with lookups
+        return grouped.entrySet().stream()
+                .map(userEntry -> {
+                    String userId = userEntry.getKey();
+                    String username = userNameMap.get(userId);
+
+                    List<RoleDTO> roles = userEntry.getValue().entrySet().stream()
+                            .map(roleEntry -> {
+                                String roleId = roleEntry.getKey();
+                                String roleName = roleNameMap.get(roleId);
+
+                                List<ResourceDTO> resources = roleEntry.getValue().entrySet().stream()
+                                        .map(resourceEntry -> {
+                                            String resourceId = resourceEntry.getKey();
+                                            String resourceName = resourceNameMap.get(resourceId);
+
+                                            List<PermissionDTO> permissions = resourceEntry.getValue().stream()
+                                                    .map(dto -> new PermissionDTO(dto.permissionId(), dto.permissionName()))
+                                                    .distinct()
+                                                    .toList();
+
+                                            return new ResourceDTO(resourceId, resourceName, permissions);
+                                        })
+                                        .toList();
+
+                                return new RoleDTO(roleId, roleName, resources);
+                            })
+                            .toList();
+
+                    return new UserDTO(userId, username, roles);
+                })
+                .toList();
+    }
+}
