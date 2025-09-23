@@ -1,0 +1,95 @@
+import javax.persistence.*;
+import java.util.Set;
+
+@Entity
+@Table(name = "Users")
+public class User {
+
+    @Id
+    @Column(name = "user_id")
+    private Long id;
+
+    @Column(name = "username")
+    private String username;
+
+    @Column(name = "first_name")
+    private String firstName;
+
+    @Column(name = "last_name")
+    private String lastName;
+
+    // Other user fields as needed
+    // ...
+
+    // Self-referential updater relation
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "last_updated_user_id")
+    private User updater;
+
+    // If you also want to know the users who updated this user, you could map the inverse:
+    // @OneToMany(mappedBy = "updater")
+    // private Set<User> updatedUsers;
+
+    // Relations to roles
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    private Set<UserRole> userRoles;
+
+    // Getters and setters
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
+
+    public User getUpdater() {
+        return updater;
+    }
+
+    public void setUpdater(User updater) {
+        this.updater = updater;
+    }
+
+    public Set<UserRole> getUserRoles() {
+        return userRoles;
+    }
+
+    public void setUserRoles(Set<UserRole> userRoles) {
+        this.userRoles = userRoles;
+    }
+
+    // Convenience: full name
+    public String getFullName() {
+        String f = firstName != null ? firstName : "";
+        String l = lastName != null ? lastName : "";
+        if (f.isEmpty()) return l;
+        if (l.isEmpty()) return f;
+        return f + " " + l;
+    }
+}
