@@ -1,0 +1,26 @@
+public List<ResourceWithPermissionsDto> groupPermissionsByResource(List<RoleDto> roles) {
+    // Flatten all permissions across all roles
+    List<PermissionDto> allPermissions = roles.stream()
+            .flatMap(role -> role.getPermissions().stream())
+            .toList();
+
+    // Group by resource
+    Map<String, List<PermissionDto>> groupedByResource =
+            allPermissions.stream()
+                    .collect(Collectors.groupingBy(PermissionDto::getResourceId));
+
+    // Build output DTO
+    return groupedByResource.entrySet().stream()
+            .map(entry -> {
+                String resourceId = entry.getKey();
+                String resourceName = entry.getValue().get(0).getResourceName();
+
+                List<PermissionSimpleDto> permissions = entry.getValue().stream()
+                        .map(p -> new PermissionSimpleDto(p.getPermissionKey(), p.getPermissionName()))
+                        .distinct()
+                        .toList();
+
+                return new ResourceWithPermissionsDto(resourceId, resourceName, permissions);
+            })
+            .toList();
+}
