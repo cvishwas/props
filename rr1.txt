@@ -1,0 +1,162 @@
+@Entity
+@Table(name = "users")
+public class User {
+    @Id
+    private String userId;
+    private String username;
+    private String email;
+
+    @ManyToMany
+    @JoinTable(
+        name = "users_roles",
+        joinColumns = @JoinColumn(name = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+    private Set<Role> roles = new HashSet<>();
+}
+
+@Entity
+@Table(name = "roles")
+public class Role {
+    @Id
+    private String roleId;
+    private String roleName;
+    private String roleDesc;
+
+    @ManyToMany
+    @JoinTable(
+        name = "role_resource_permissions",
+        joinColumns = @JoinColumn(name = "role_id"),
+        inverseJoinColumns = @JoinColumn(name = "resource_permission_id")
+    )
+    private Set<ResourcePermission> resourcePermissions = new HashSet<>();
+}
+
+@Entity
+@Table(name = "resources")
+public class Resource {
+    @Id
+    private String resourceId;
+    private String resourceName;
+    private String resourceDesc;
+}
+
+
+@Entity
+@Table(name = "permissions")
+public class Permission {
+    @Id
+    private String permissionId;
+    private String permissionName;
+    private String permissionDesc;
+}
+
+@Entity
+@Table(name = "resource_permissions")
+public class ResourcePermission {
+    @Id
+    private String resourcePermissionId;
+
+    @ManyToOne
+    @JoinColumn(name = "resource_id")
+    private Resource resource;
+
+    @ManyToOne
+    @JoinColumn(name = "permission_id")
+    private Permission permission;
+}
+
+public record ResourcePermissionDTO(
+    String resourceId,
+    String resourceName,
+    String permissionId,
+    String permissionName
+) {}
+
+@Repository
+public interface UserRepository extends JpaRepository<User, String> {
+
+    @Query("""
+        SELECT DISTINCT new com.example.demo.dto.ResourcePermissionDTO(
+            res.resourceId,
+            res.resourceName,
+            p.permissionId,
+            p.permissionName
+        )
+        FROM User u
+        JOIN u.roles r
+        JOIN r.resourcePermissions rp
+        JOIN rp.resource res
+        JOIN rp.permission p
+        WHERE u.userId = :userId
+        """)
+    List<ResourcePermissionDTO> findResourcesAndPermissionsByUserId(@Param("userId") String userId);
+}
+
+@Service
+public class UserService {
+    private final UserRepository userRepository;
+
+    public UserService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+
+    public List<ResourcePermissionDTO> getUserResourcesWithPermissions(String userId) {
+        return userRepository.findResourcesAndPermissionsByUserId(userId);
+    }
+}
+
+@RestController
+@RequestMapping("/users")
+public class UserController {
+    private final UserService userService;
+
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @GetMapping("/{userId}/resources-permissions")
+    public List<ResourcePermissionDTO> getUserResourcesPermissions(@PathVariable String userId) {
+        return userService.getUserResourcesWithPermissions(userId);
+    }
+}
+
+public record PermissionDTO(String permissionId, String permissionName) {}
+
+public record ResourceDTO(
+    String resourceId,
+    String resourceName,
+    List<PermissionDTO> permissions
+) {}
+
+@Service
+public class UserService {
+    private final UserRepository userRepository;
+
+    public UserService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+
+    public List<ResourceDTO> getUserResourcesWithPermissions(String userId) {
+        List<ResourcePermissionDTO> flatList = userRepository.findResourcesAndPermissionsByUserId(userId);
+
+        // Group by resource
+        Map<String, List<ResourcePermissionDTO>> groupedByResource =
+                flatList.stream().collect(Collectors.groupingBy(ResourcePermissionDTO::resourceId));
+
+        return groupedByResource.entrySet().stream()
+                .map(entry -> {
+                    String resourceId = entry.getKey();
+                    String resourceName = entry.getValue().get(0).resourceName();
+
+                    List<PermissionDTO> permissions = entry.getValue().stream()
+                            .map(dto -> new PermissionDTO(dto.permissionId(), dto.permissionName()))
+                            .distinct()
+                            .toList();
+
+                    return new ResourceDTO(resourceId, resourceName, permissions);
+                })
+                .toList();
+    }
+}
+
