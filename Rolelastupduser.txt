@@ -1,0 +1,18 @@
+@Table(name = "Role")
+public class Role {
+    @Id
+    @Column(name = "Role_id")
+    private String Role_id;
+
+    @Column(name = "Role_name")
+    private String Role_name;
+
+    @Column(name = "role_description")
+    private String role_description;
+
+    @ManyToOne
+    @JoinColumn(name = "last_updated_user_login_id", referencedColumnName = "user_login_id")
+    private User lastUpdatedUser;
+
+    // getters/setters
+}
