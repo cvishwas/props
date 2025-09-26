@@ -1,0 +1,208 @@
+import jakarta.persistence.*;
+import java.util.Set;
+
+@Entity
+@Table(name = "Users") // adjust if your table is named differently
+public class User {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "user_id")
+    private Long id;
+
+    @Column(name = "user_login_id", unique = true, nullable = false)
+    private String loginId;
+
+    @Column(name = "user_full_name")
+    private String fullName;
+
+    // other fields...
+
+    @ManyToMany(mappedBy = "users")
+    private Set<Role> roles;
+
+    // getters/setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public String getLoginId() { return loginId; }
+    public void setLoginId(String loginId) { this.loginId = loginId; }
+
+    public String getFullName() { return fullName; }
+    public void setFullName(String fullName) { this.fullName = fullName; }
+
+    public Set<Role> getRoles() { return roles; }
+    public void setRoles(Set<Role> roles) { this.roles = roles; }
+}
+
+import jakarta.persistence.*;
+import java.util.Set;
+
+@Entity
+@Table(name = "Roles")
+public class Role {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "role_id")
+    private Long id;
+
+    @Column(name = "role_name")
+    private String name;
+
+    @Column(name = "role_desc")
+    private String description;
+
+    // last updated by user login id
+    @Column(name = "last_updated_user")
+    private String lastUpdatedUserLoginId;
+
+    @ManyToMany
+    @JoinTable(
+        name = "Role_Resource_Permissions",
+        joinColumns = @JoinColumn(name = "role_id"),
+        inverseJoinColumns = @JoinColumn(name = "resource_permission_id")
+    )
+    private Set<ResourcePermission> resourcePermissions;
+
+    @ManyToMany
+    @JoinTable(
+        name = "users_roles",
+        joinColumns = @JoinColumn(name = "role_id"),
+        inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private Set<User> users;
+
+    // getters/setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+
+    public String getLastUpdatedUserLoginId() { return lastUpdatedUserLoginId; }
+    public void setLastUpdatedUserLoginId(String lastUpdatedUserLoginId) { this.lastUpdatedUserLoginId = lastUpdatedUserLoginId; }
+
+    public Set<ResourcePermission> getResourcePermissions() { return resourcePermissions; }
+    public void setResourcePermissions(Set<ResourcePermission> resourcePermissions) { this.resourcePermissions = resourcePermissions; }
+
+    public Set<User> getUsers() { return users; }
+    public void setUsers(Set<User> users) { this.users = users; }
+}
+
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "Resource_Permissions")
+public class ResourcePermission {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "resource_permission_id")
+    private Long id;
+
+    @ManyToOne
+    @JoinColumn(name = "resource_id")
+    private Resource resource;
+
+    @ManyToOne
+    @JoinColumn(name = "permission_id")
+    private Permission permission;
+
+    // getters/setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public Resource getResource() { return resource; }
+    public void setResource(Resource resource) { this.resource = resource; }
+
+    public Permission getPermission() { return permission; }
+    public void setPermission(Permission permission) { this.permission = permission; }
+}
+
+import jakarta.persistence.*;
+import java.util.Set;
+
+@Entity
+@Table(name = "Resources")
+public class Resource {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "resources_id")
+    private Long id;
+
+    @Column(name = "resource_name")
+    private String name;
+
+    @Column(name = "resource_desc")
+    private String description;
+
+    @OneToMany(mappedBy = "resource")
+    private Set<ResourcePermission> resourcePermissions;
+
+    // getters/setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+
+    public Set<ResourcePermission> getResourcePermissions() { return resourcePermissions; }
+    public void setResourcePermissions(Set<ResourcePermission> resourcePermissions) { this.resourcePermissions = resourcePermissions; }
+}
+
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "Permissions")
+public class Permission {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "permission_id")
+    private Long id;
+
+    @Column(name = "permission_name")
+    private String name;
+
+    @Column(name = "permission_desc")
+    private String description;
+
+    // getters/setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+}
+
+import com.example.entitlement.model.Role;
+import com.example.entitlement.model.RoleWithLastUpdater;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.util.List;
+
+public interface RoleRepository extends JpaRepository<Role, Long> {
+
+    // DTO projection via JPQL
+    @Query("""
+        SELECT new com.example.entitlement.model.RoleWithLastUpdater(
+            r.id, r.name, r.description, u.fullName
+        )
+        FROM Role r
+        LEFT JOIN User u ON r.lastUpdatedUserLoginId = u.loginId
+        """)
+    List<RoleWithLastUpdater> findAllRolesWithLastUpdater();
+}
