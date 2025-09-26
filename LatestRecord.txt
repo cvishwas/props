@@ -1,0 +1,12 @@
+SELECT a
+FROM AuditRecordLog a
+WHERE a.entityName = :entityName
+  AND a.entityKeyColumn = :entityKeyColumn
+  AND a.entityKeyValue = :entityKeyValue
+  AND a.insertTsp = (
+      SELECT MAX(b.insertTsp)
+      FROM AuditRecordLog b
+      WHERE b.entityName = :entityName
+        AND b.entityKeyColumn = :entityKeyColumn
+        AND b.entityKeyValue = :entityKeyValue
+  )
