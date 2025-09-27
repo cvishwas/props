@@ -1,0 +1,305 @@
+package com.example.entitlements.dto;
+
+public record RoleSummaryDTO(
+    String roleKey,
+    String roleName,
+    String lastUpdatedUserFullName,
+    Long userCount
+) {}
+
+package com.example.entitlements.repository;
+
+import com.example.entitlements.dto.RoleSummaryDTO;
+import com.example.entitlements.entity.Role;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface RoleRepository extends JpaRepository<Role, String> {
+
+    @Query("""
+        SELECT new com.example.entitlements.dto.RoleSummaryDTO(
+            r.roleKey,
+            r.roleName,
+            CONCAT(uLast.firstName, ' ', uLast.lastName),
+            COUNT(DISTINCT ur.user.userKey)
+        )
+        FROM Role r
+        LEFT JOIN User uLast ON uLast.userLoginId = r.lastUpdatedUserId
+        LEFT JOIN UserRole ur ON ur.role.roleKey = r.roleKey
+        GROUP BY r.roleKey, r.roleName, uLast.firstName, uLast.lastName
+        """)
+    List<RoleSummaryDTO> fetchRoleSummaries();
+}
+
+package com.example.entitlements.service;
+
+import com.example.entitlements.dto.RoleSummaryDTO;
+import com.example.entitlements.repository.RoleRepository;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class RoleService {
+
+    private final RoleRepository roleRepository;
+
+    public RoleService(RoleRepository roleRepository) {
+        this.roleRepository = roleRepository;
+    }
+
+    public List<RoleSummaryDTO> getRoleSummaries() {
+        return roleRepository.fetchRoleSummaries();
+    }
+}
+
+package com.example.entitlements.controller;
+
+import com.example.entitlements.dto.RoleSummaryDTO;
+import com.example.entitlements.service.RoleService;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+public class RoleController {
+
+    private final RoleService roleService;
+
+    public RoleController(RoleService roleService) {
+        this.roleService = roleService;
+    }
+
+    @GetMapping("/roles/summary")
+    public List<RoleSummaryDTO> getRoleSummaries() {
+        return roleService.getRoleSummaries();
+    }
+}
+
+package com.example.entitlements.entity;
+
+import jakarta.persistence.*;
+import java.sql.Timestamp;
+import java.util.HashSet;
+import java.util.Set;
+
+@Entity
+@Table(name = "users")
+public class User {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // Oracle: could also use a sequence
+    @Column(name = "user_key")
+    private Long userKey;
+
+    private String firstName;
+    private String lastName;
+    private String email;
+    private String phone;
+    private String userTzAbbrev;
+    private String userLoginId;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<UserRole> userRoles = new HashSet<>();
+
+    private Timestamp insertTimestamp;
+    private Timestamp lastUpdatedTimestamp;
+    private String insertedUserId;
+    private String lastUpdatedUserId;
+
+    // Getters & Setters
+    // ...
+}
+
+package com.example.entitlements.entity;
+
+import jakarta.persistence.*;
+import java.sql.Timestamp;
+import java.util.HashSet;
+import java.util.Set;
+
+@Entity
+@Table(name = "roles")
+public class Role {
+
+    @Id
+    @Column(name = "role_key")
+    private String roleKey;
+
+    private String roleName;
+    private String roleDesc;
+
+    @OneToMany(mappedBy = "role", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<UserRole> userRoles = new HashSet<>();
+
+    @OneToMany(mappedBy = "role", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<RoleResourcePermission> roleResourcePermissions = new HashSet<>();
+
+    private Timestamp insertTimestamp;
+    private Timestamp lastUpdatedTimestamp;
+    private String insertedUserId;
+    private String lastUpdatedUserId; // stores userLoginId
+
+    // Getters & Setters
+    // ...
+}
+
+package com.example.entitlements.entity;
+
+import jakarta.persistence.*;
+import java.sql.Timestamp;
+
+@Entity
+@Table(name = "users_roles")
+public class UserRole {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "user_role_key")
+    private Long userRoleKey;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_key")
+    private User user;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "role_key")
+    private Role role;
+
+    private Timestamp insertTimestamp;
+    private Timestamp lastUpdatedTimestamp;
+    private String insertedUserId;
+    private String lastUpdatedUserId;
+
+    // Getters & Setters
+    // ...
+}
+
+package com.example.entitlements.entity;
+
+import jakarta.persistence.*;
+import java.sql.Timestamp;
+import java.util.HashSet;
+import java.util.Set;
+
+@Entity
+@Table(name = "resources")
+public class Resources {
+
+    @Id
+    @Column(name = "resource_id")
+    private String resourceId;
+
+    private String resourceName;
+
+    @OneToMany(mappedBy = "resource", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<ResourcePermissions> resourcePermissions = new HashSet<>();
+
+    private Timestamp insertTimestamp;
+    private Timestamp lastUpdatedTimestamp;
+    private String insertedUserId;
+    private String lastUpdatedUserId;
+
+    // Getters & Setters
+    // ...
+}
+
+package com.example.entitlements.entity;
+
+import jakarta.persistence.*;
+import java.sql.Timestamp;
+import java.util.HashSet;
+import java.util.Set;
+
+@Entity
+@Table(name = "permissions")
+public class Permission {
+
+    @Id
+    @Column(name = "permission_id")
+    private String permissionId;
+
+    private String permissionName;
+
+    @OneToMany(mappedBy = "permission", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<ResourcePermissions> resourcePermissions = new HashSet<>();
+
+    private Timestamp insertTimestamp;
+    private Timestamp lastUpdatedTimestamp;
+    private String insertedUserId;
+    private String lastUpdatedUserId;
+
+    // Getters & Setters
+    // ...
+}
+
+package com.example.entitlements.entity;
+
+import jakarta.persistence.*;
+import java.sql.Timestamp;
+
+@Entity
+@Table(name = "resource_permissions")
+public class ResourcePermissions {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "resource_permission_key")
+    private Long resourcePermissionKey;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "resource_id")
+    private Resources resource;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "permission_id")
+    private Permission permission;
+
+    private String resourceKey;
+    private String permissionKey;
+
+    private Timestamp insertTimestamp;
+    private Timestamp lastUpdatedTimestamp;
+    private String insertedUserId;
+    private String lastUpdatedUserId;
+
+    // Getters & Setters
+    // ...
+}
+
+package com.example.entitlements.entity;
+
+import jakarta.persistence.*;
+import java.sql.Timestamp;
+
+@Entity
+@Table(name = "role_resource_permissions")
+public class RoleResourcePermission {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "role_resource_permission_key")
+    private Long roleResourcePermissionKey;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "role_key")
+    private Role role;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "resource_permission_key")
+    private ResourcePermissions resourcePermissions;
+
+    private Timestamp insertTimestamp;
+    private Timestamp lastUpdatedTimestamp;
+    private String insertedUserId;
+    private String lastUpdatedUserId;
+
+    // Getters & Setters
+    // ...
+}
+
