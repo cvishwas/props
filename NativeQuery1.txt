@@ -1,0 +1,49 @@
+@Query(value = """
+    SELECT 
+        r.role_key            AS roleId,
+        r.role_name           AS roleName,
+        r.role_desc           AS roleDescription,
+        'ACTIVE'              AS status,
+        r.last_updated_userid AS lastUpdatedUser,
+        r.last_updated_userid AS lastUpdatedUserId,
+        false                 AS isExternal,
+        true                  AS isEditable,
+        STRING_AGG(DISTINCT res.resource_name, ',') AS roleApplications,
+        COUNT(DISTINCT ur.user_key)                 AS userCount,
+        r.lastupdatedtimestamp                      AS lastUpdatedTimestamp
+    FROM role r
+    LEFT JOIN user_role ur 
+        ON ur.role_key = r.role_key
+    LEFT JOIN role_resource_permission rrp 
+        ON rrp.role_key = r.role_key
+    LEFT JOIN resource_permissions rp 
+        ON rp.resource_permission_key = rrp.resource_permission_key
+    LEFT JOIN resources res 
+        ON res.resource_id = rp.resource_key
+    GROUP BY r.role_key, r.role_name, r.role_desc, 
+             r.last_updated_userid, r.lastupdatedtimestamp
+""", nativeQuery = true)
+List<Object[]> findAllRoleDashboardsRaw();
+
+
+public List<RoleDashboardDTO> getRoleDashboards() {
+    List<Object[]> rows = roleRepository.findAllRoleDashboardsRaw();
+
+    return rows.stream().map(row -> new RoleDashboardDTO(
+            (String) row[0],  // roleId
+            (String) row[1],  // roleName
+            (String) row[2],  // roleDescription
+            (String) row[3],  // status
+            (String) row[4],  // lastUpdatedUser
+            (String) row[5],  // lastUpdatedUserId
+            (Boolean) row[6], // isExternal
+            (Boolean) row[7], // isEditable
+            row[8] != null 
+                ? Arrays.asList(((String) row[8]).split(",")) 
+                : new ArrayList<>(), // roleApplications
+            ((Number) row[9]).longValue(), // userCount
+            ((Timestamp) row[10]).toLocalDateTime() // lastUpdatedTimestamp
+    )).collect(Collectors.toList());
+}
+
+LISTAGG(res.resource_name, ',') WITHIN GROUP (ORDER BY res.resource_name) AS roleApplications
