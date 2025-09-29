@@ -1,0 +1,5 @@
+resources.sort(Comparator.comparingInt(r -> r.getOrder().intValue()));
+// or for a new list:
+List<Resource> ordered = resources.stream()
+    .sorted(Comparator.comparingInt(r -> r.getOrder().intValue()))
+    .collect(Collectors.toList());
