@@ -1,0 +1,94 @@
+import com.example.whitelabel.dto.WhiteLabelProductsDto;
+import com.example.whitelabel.dto.WhiteLabelProductsDto.PointDto;
+import com.example.whitelabel.model.Resource;
+import jakarta.persistence.Tuple;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface WhiteLabelProductRepository extends JpaRepository<Resource, String> {
+
+    // Flat projection: returns resource fields, tile fields, and component fields per row
+    @Query("""
+        SELECT r.id AS resourceId,
+               r.name AS resourceName,
+               r.description AS resourceDesc,
+               t.displayOrder AS tileOrder,
+               t.buttonText AS tileButtonText,
+               t.icon AS tileIcon,
+               t.url AS tileUrl,
+               c.name AS compName,
+               c.url AS compUrl
+        FROM Resource r
+        LEFT JOIN WhiteLabelTile t ON t.resource.id = r.id
+        LEFT JOIN WhiteLabelTileComponent c ON c.whiteLabelTile.id = t.id
+        WHERE r IN :resources
+        ORDER BY r.id, t.displayOrder, c.name
+    """)
+    List<Tuple> findFlatTilesForResources(List<Resource> resources);
+}
+
+import com.example.whitelabel.dto.WhiteLabelProductsDto;
+import com.example.whitelabel.dto.WhiteLabelProductsDto.PointDto;
+import com.example.whitelabel.model.Resource;
+import com.example.whitelabel.repository.WhiteLabelProductRepository;
+import org.springframework.stereotype.Service;
+
+import jakarta.persistence.Tuple;
+import java.util.*;
+import java.util.stream.Collectors;
+
+@Service
+public class WhiteLabelProductService {
+
+    private final WhiteLabelProductRepository repository;
+
+    public WhiteLabelProductService(WhiteLabelProductRepository repository) {
+        this.repository = repository;
+    }
+
+    public List<WhiteLabelProductsDto> getProductsForResources(List<Resource> resources) {
+        List<Tuple> rows = repository.findFlatTilesForResources(resources);
+
+        // Group by resource (application)
+        Map<String, WhiteLabelProductsDto> map = new LinkedHashMap<>();
+
+        for (Tuple t : rows) {
+            String resourceId = t.get("resourceId", String.class);
+            String resourceName = t.get("resourceName", String.class);
+            String resourceDesc = t.get("resourceDesc", String.class);
+
+            Long order = t.get("tileOrder", Long.class);
+            String tileButtonText = t.get("tileButtonText", String.class);
+            String tileIcon = t.get("tileIcon", String.class);
+            String tileUrl = t.get("tileUrl", String.class);
+
+            String compName = t.get("compName", String.class);
+            String compUrl = t.get("compUrl", String.class);
+
+            WhiteLabelProductsDto dto = map.get(resourceId);
+            if (dto == null) {
+                dto = new WhiteLabelProductsDto();
+                dto.setApplicationId(resourceId);
+                dto.setTitle(resourceName);
+                dto.setDescription(resourceDesc);
+                dto.setKey(null);
+                dto.setButtonText(tileButtonText);
+                dto.setIcon(tileIcon);
+                dto.setUrl(tileUrl);
+                dto.setOrder(order);
+                dto.setPoints(new ArrayList<>());
+                map.put(resourceId, dto);
+            }
+
+            if (compName != null && compUrl != null) {
+                dto.getPoints().add(new PointDto(compName, compUrl));
+            }
+        }
+
+        return new ArrayList<>(map.values());
+    }
+}
