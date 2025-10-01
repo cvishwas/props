@@ -1,0 +1,305 @@
+import java.util.List;
+
+public class WhiteLabelProductsDto {
+    private String applicationId; // resourceId
+    private String title;           // resourceName
+    private String description;
+
+    private String key;
+    private String buttonText;
+    private String icon;
+    private String url;
+    private Long order;               // tile_display_order
+
+    private List<PointDto> points;
+
+    // Constructors, getters, setters
+
+    public WhiteLabelProductsDto() {}
+
+    public WhiteLabelProductsDto(String applicationId, String title, String description,
+                                String key, String buttonText, String icon, String url, Long order,
+                                List<PointDto> points) {
+        this.applicationId = applicationId;
+        this.title = title;
+        this.description = description;
+        this.key = key;
+        this.buttonText = buttonText;
+        this.icon = icon;
+        this.url = url;
+        this.order = order;
+        this.points = points;
+    }
+
+    // getters and setters...
+    public String getApplicationId() { return applicationId; }
+    public void setApplicationId(String applicationId) { this.applicationId = applicationId; }
+
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
+
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+
+    public String getKey() { return key; }
+    public void setKey(String key) { this.key = key; }
+
+    public String getButtonText() { return buttonText; }
+    public void setButtonText(String buttonText) { this.buttonText = buttonText; }
+
+    public String getIcon() { return icon; }
+    public void setIcon(String icon) { this.icon = icon; }
+
+    public String getUrl() { return url; }
+    public void setUrl(String url) { this.url = url; }
+
+    public Long getOrder() { return order; }
+    public void setOrder(Long order) { this.order = order; }
+
+    public List<PointDto> getPoints() { return points; }
+    public void setPoints(List<PointDto> points) { this.points = points; }
+}
+
+class PointDto {
+    private String name;
+    private String url;
+
+    public PointDto() {}
+
+    public PointDto(String name, String url) {
+        this.name = name;
+        this.url = url;
+    }
+
+    // getters/setters
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+
+    public String getUrl() { return url; }
+    public void setUrl(String url) { this.url = url; }
+}
+
+import jakarta.persistence.*;
+import java.util.Set;
+
+@Entity
+@Table(name = "Resources")
+public class Resource {
+
+    @Id
+    @Column(name = "resourceId")
+    private String id; // or Long, depending on your schema
+
+    @Column(name = "resourceName")
+    private String name;
+
+    @Column(name = "resourceDesc")
+    private String description;
+
+    // getters/setters
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
+
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+}
+
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "white_label_tile_components")
+public class WhiteLabelTileComponent {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "white_label_tile_component_id")
+    private Long id;
+
+    @Column(name = "component_name")
+    private String name;
+
+    @Column(name = "component_url")
+    private String url;
+
+    @Column(name = "active_flag")
+    private String activeFlag;
+
+    @ManyToOne
+    @JoinColumn(name = "white_label_tile_id")
+    private WhiteLabelTile tile;
+
+    // getters/setters
+}
+
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "white_label_tiles")
+public class WhiteLabelTile {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "white_label_tile_id")
+    private Long id;
+
+    @Column(name = "tile_title")
+    private String title;
+
+    @Column(name = "tile_desc")
+    private String description;
+
+    @Column(name = "tile_button_text")
+    private String buttonText;
+
+    @Column(name = "tile_icon")
+    private String icon;
+
+    @Column(name = "tile_url")
+    private String url;
+
+    @Column(name = "tile_display_order")
+    private Long displayOrder;
+
+    @Column(name = "active_flag")
+    private String activeFlag;
+
+    @ManyToOne
+    @JoinColumn(name = "white_label_id")
+    private WhiteLabel whiteLabel;
+
+    @ManyToOne
+    @JoinColumn(name = "resource_id")
+    private Resource resource;
+
+    @OneToMany(mappedBy = "tile")
+    private Set<WhiteLabelTileComponent> components;
+
+    // getters/setters
+}
+
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "white_label")
+public class WhiteLabel {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "white_label_id")
+    private Long id;
+
+    @Column(name = "org_id")
+    private Long orgId;
+
+    @Column(name = "header_hub_title")
+    private String headerHubTitle;
+
+    @Column(name = "landing_page_title")
+    private String landingPageTitle;
+
+    @Column(name = "hub_logo")
+    private String hubLogo;
+
+    @Column(name = "active_flag")
+    private String activeFlag;
+
+    // getters/setters
+}
+
+import com.example.whitelabel.dto.WhiteLabelProductsDto;
+import com.example.whitelabel.model.Resource;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Repository
+public class WhiteLabelProductRepository {
+
+    @PersistenceContext
+    private EntityManager em;
+
+    /**
+     * Retrieves WhiteLabelProductsDto for given resources.
+     * This uses JPQL to fetch necessary fields and map to DTO.
+     * Note: The JPQL below returns a result set that we map to WhiteLabelProductsDto manually
+     * because JPQL constructor expressions across nested collections are tricky.
+     */
+    public List<WhiteLabelProductsDto> findWhiteLabelProductsForResources(List<Resource> resources) {
+        // Fetch tiles with their components for the given resources
+        String jpql = "SELECT r.id AS resourceId, r.name AS resourceName, r.description AS resourceDesc, " +
+                "t.displayOrder AS tileOrder, t.buttonText AS tileButtonText, t.icon AS tileIcon, t.url AS tileUrl, " +
+                "c.name AS compName, c.url AS compUrl " +
+                "FROM Resource r " +
+                "LEFT JOIN WhiteLabelTile t ON t.resource.id = r.id " +
+                "LEFT JOIN WhiteLabelTileComponent c ON c.tile.id = t.id " +
+                "WHERE r IN :resources " +
+                "ORDER BY r.id, t.displayOrder, c.name";
+
+        List<Object[]> rows = em.createQuery(jpql)
+                .setParameter("resources", resources)
+                .getResultList();
+
+        // Transform into List<WhiteLabelProductsDto> with nested points
+        // We group by resource to build one WhiteLabelProductsDto per resource
+        java.util.Map<String, WhiteLabelProductsDto> map = new java.util.LinkedHashMap<>();
+        for (Object[] row : rows) {
+            String resourceId = (String) row[0];
+            String resourceName = (String) row[1];
+            String resourceDesc = (String) row[2];
+            Long tileOrder = (Long) row[3];
+            String tileButtonText = (String) row[4];
+            String tileIcon = (String) row[5];
+            String tileUrl = (String) row[6];
+            String compName = (String) row[7];
+            String compUrl = (String) row[8];
+
+            WhiteLabelProductsDto dto = map.get(resourceId);
+            if (dto == null) {
+                dto = new WhiteLabelProductsDto();
+                dto.setApplicationId(resourceId);
+                dto.setTitle(resourceName);
+                dto.setDescription(resourceDesc);
+                dto.setKey(null);
+                dto.setButtonText(tileButtonText);
+                dto.setIcon(tileIcon);
+                dto.setUrl(tileUrl);
+                dto.setOrder(tileOrder);
+                dto.setPoints(new java.util.ArrayList<>());
+                map.put(resourceId, dto);
+            }
+
+            if (compName != null && compUrl != null) {
+                dto.getPoints().add(new PointDto(compName, compUrl));
+            }
+        }
+
+        return new java.util.ArrayList<>(map.values());
+    }
+}
+
+import com.example.whitelabel.dto.WhiteLabelProductsDto;
+import com.example.whitelabel.model.Resource;
+import com.example.whitelabel.repository.WhiteLabelProductRepository;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class WhiteLabelProductService {
+
+    private final WhiteLabelProductRepository repository;
+
+    public WhiteLabelProductService(WhiteLabelProductRepository repository) {
+        this.repository = repository;
+    }
+
+    public List<WhiteLabelProductsDto> getProductsForResources(List<Resource> resources) {
+        return repository.findWhiteLabelProductsForResources(resources);
+    }
+}
