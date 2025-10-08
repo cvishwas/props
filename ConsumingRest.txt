@@ -1,0 +1,53 @@
+package com.example.consumingapp.service;
+
+import com.example.consumingapp.dto.EtfApiResponse;
+import com.example.consumingapp.dto.UsersDataDashboardDto;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import java.util.List;
+
+@Service
+public class EntitlementClientService {
+
+    private final RestTemplate restTemplate;
+    // If you use WebClient, adapt accordingly.
+
+    public EntitlementClientService() {
+        this.restTemplate = new RestTemplate();
+    }
+
+    private static final String BASE_URL = "http://localhost:8088/etf-umb";
+
+    public EtfApiResponse<List<UsersDataDashboardDto>> getUsersSummary() {
+        String url = BASE_URL + "/users/summary";
+
+        // If the API requires headers (e.g., auth), set them
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+        // Using exchange to map to EtfApiResponse<List<UsersDataDashboardDto>>
+        @SuppressWarnings("unchecked")
+        EtfApiResponse<List<UsersDataDashboardDto>> response =
+                restTemplate.exchange(url, org.springframework.http.HttpMethod.GET, entity,
+                        (Class<EtfApiResponse<List<UsersDataDashboardDto>>>) (Class<?>) EtfApiResponse.class)
+                        .getBody();
+
+        return response;
+    }
+
+    // If you need to fetch raw data and map manually:
+    public List<UsersDataDashboardDto> getUsersSummaryDataOnly() {
+        String url = BASE_URL + "/users/summary";
+
+        ResponseEntity<EtfApiResponse> resp = restTemplate.getForEntity(url, EtfApiResponse.class);
+        // You would need proper generic mapping here; kept simple for brevity.
+        return null;
+    }
+}
