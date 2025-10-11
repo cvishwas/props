@@ -1,0 +1,5 @@
+url,
+    HttpMethod.POST,
+    request,
+    new ParameterizedTypeReference<EtfApiResponse<List<UserDto>>>() {}
+);
