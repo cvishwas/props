@@ -1,0 +1,132 @@
+Using RestTemplate.exchange instead of postForObject
+
+If you want to switch from postForObject to RestTemplate.exchange for saving a User via a remote service, use exchange with a POST method and a parameterized response type. Here are concise, working snippets you can drop in.
+
+Assumptions
+Remote endpoint: POST http://remote-service.example.com/api/users
+Request body: UserDto (JSON)
+Response body: UserDto (the created user) or a wrapper like EtfApiResponse (adjust as needed)
+Optional: authentication header (Bearer token)
+
+1) Basic POST with a plain response body (UserDto)
+
+package com.example.app.service;
+
+import com.example.app.dto.UserDto;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.*;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+@Service
+public class UserRemoteService {
+
+    private final RestTemplate restTemplate;
+    private static final String REMOTE_BASE_URL = "http://remote-service.example.com/api";
+
+    @Autowired
+    public UserRemoteService(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
+
+    public UserDto saveUser(UserDto user) {
+        String url = REMOTE_BASE_URL + "/users";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        // If auth is required, add header:
+        // headers.setBearerAuth(token);
+
+        HttpEntity request = new HttpEntity(user, headers);
+
+        ResponseEntity response =
+                restTemplate.exchange(url, HttpMethod.POST, request, UserDto.class);
+
+        return response.getBody();
+    }
+}
+
+2) If the remote returns a wrapper (EtfApiResponse)
+
+import org.springframework.core.ParameterizedTypeReference;
+
+public UserDto saveUser(UserDto user) {
+    String url = REMOTE_BASE_URL + "/users";
+
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    HttpEntity request = new HttpEntity(user, headers);
+
+    ResponseEntity> response =
+        restTemplate.exchange(
+            url,
+            HttpMethod.POST,
+            request,
+            new ParameterizedTypeReference>() {}
+        );
+
+    EtfApiResponse body = response.getBody();
+    return body != null ? body.getData() : null;
+}
+
+3) With a generic List or complex types (ParameterizedTypeReference)
+
+ResponseEntity>> response = restTemplate.exchange(
+    url,
+    HttpMethod.POST,
+    request,
+    new ParameterizedTypeReference>>() {}
+);
+
+4) Handling errors (optional)
+
+try {
+    ResponseEntity response =
+        restTemplate.exchange(url, HttpMethod.POST, request, UserDto.class);
+    return response.getBody();
+} catch (HttpClientErrorException e) {
+    // handle 4xx
+    throw new RuntimeException("Remote error: " + e.getStatusCode() + " " + e.getResponseBodyAsString(), e);
+} catch (HttpServerErrorException e) {
+    // handle 5xx
+    throw new RuntimeException("Server error: " + e.getStatusCode(), e);
+} catch (ResourceAccessException e) {
+    // I/O error (timeout, etc.)
+    throw new RuntimeException("I/O error calling remote service", e);
+}
+
+5) Optional: define a reusable method to build the request (headers, auth)
+
+private HttpEntity buildRequest(UserDto user, String token) {
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    if (token != null && !token.isEmpty()) {
+        headers.setBearerAuth(token);
+    }
+    return new HttpEntity(user, headers);
+}
+
+6) Quick example usage (controller)
+
+@RestController
+@RequestMapping("/api/users")
+public class UserController {
+
+    private final UserRemoteService userRemoteService;
+
+    public UserController(UserRemoteService userRemoteService) {
+        this.userRemoteService = userRemoteService;
+    }
+
+    @PostMapping
+    public UserDto createUser(@RequestBody UserDto user) {
+        return userRemoteService.saveUser(user);
+    }
+}
+
+Tips
+RestTemplate.exchange is more flexible than postForObject and allows you to specify the response type with ParameterizedTypeReference when dealing with generics.
+If you frequently call the same remote endpoint, consider centralizing base URL and endpoint paths in application.properties and injecting them via @Value or @ConfigurationProperties.
+For auth, pass a token in the Authorization header. You can extend the helper to supply tokens per-request.
+
+If you share your exact response type (plain UserDto vs wrapped EtfApiResponse) I can tailor the exact code snippet to your case.
