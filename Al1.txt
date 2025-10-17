@@ -1,0 +1,35 @@
+package com.example.audit.repository;
+
+import com.example.audit.dto.AuditLatestRecordDto;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface AuditRecordLogRepository extends CrudRepository<com.example.audit.entity.AuditRecordLog, Long> {
+
+    @Query(value = """
+        SELECT
+            ar.entity_name AS entityName,
+            ar.entity_key_column AS entityKeyColumn,
+            ar.entity_key_value AS entityKeyValue,
+            ar.record_status AS recordStatus,
+            ar.comments AS comments,
+            (u.first_name || ' ' || u.last_name) AS createdByFullName,
+            ar.created_at AS createdAt
+        FROM audit_record_log ar
+        JOIN users u ON ar.created_by_user_id = u.user_id
+        WHERE ar.entity_name = :entityName
+          AND ar.entity_key_column = :entityKeyColumn
+          AND ar.entity_key_value = :entityKeyValue
+        ORDER BY ar.created_at DESC
+        FETCH FIRST 1 ROWS ONLY
+        """,
+        nativeQuery = true)
+    AuditLatestRecordDto findLatestForEntityGroup(@Param("entityName") String entityName,
+                                                 @Param("entityKeyColumn") String entityKeyColumn,
+                                                 @Param("entityKeyValue") String entityKeyValue);
+}
