@@ -1,0 +1,63 @@
+package com.example.audit.repository;
+
+import com.example.audit.dto.AuditLatestRecordDto;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface AuditRecordLogRepository extends CrudRepository<com.example.audit.entity.AuditRecordLog, Long> {
+
+    // Variant A: using created_at for latest (if column exists)
+    @Query(value = """
+            SELECT
+                ar.entity_name AS entityName,
+                ar.entity_key_column AS entityKeyColumn,
+                ar.entity_key_value AS entityKeyValue,
+                ar.record_status AS recordStatus,
+                ar.comments AS comments,
+                u.first_name || ' ' || u.last_name AS createdByFullName,
+                ar.created_at AS createdAt
+            FROM audit_record_log ar
+            JOIN users u ON ar.created_by_user_id = u.user_id
+            WHERE (ar.entity_name, ar.entity_key_column, ar.entity_key_value, ar.created_at) IN (
+                SELECT
+                    ar2.entity_name,
+                    ar2.entity_key_column,
+                    ar2.entity_key_value,
+                    MAX(ar2.created_at)
+                FROM audit_record_log ar2
+                GROUP BY ar2.entity_name, ar2.entity_key_column, ar2.entity_key_value
+            )
+            """,
+            nativeQuery = true)
+    List<AuditLatestRecordDto> findLatestPerEntityGroupWithUserByCreatedAt();
+
+    // Variant B: using audit_record_log_key as the ordering surrogate (if created_at is not present)
+    @Query(value = """
+            SELECT
+                ar.entity_name AS entityName,
+                ar.entity_key_column AS entityKeyColumn,
+                ar.entity_key_value AS entityKeyValue,
+                ar.record_status AS recordStatus,
+                ar.comments AS comments,
+                u.first_name || ' ' || u.last_name AS createdByFullName,
+                ar.audit_record_log_key AS createdAt -- using key as surrogate for latest
+            FROM audit_record_log ar
+            JOIN users u ON ar.created_by_user_id = u.user_id
+            WHERE (ar.entity_name, ar.entity_key_column, ar.entity_key_value, ar.audit_record_log_key) IN (
+                SELECT
+                    ar2.entity_name,
+                    ar2.entity_key_column,
+                    ar2.entity_key_value,
+                    MAX(ar2.audit_record_log_key)
+                FROM audit_record_log ar2
+                GROUP BY ar2.entity_name, ar2.entity_key_column, ar2.entity_key_value
+            )
+            """,
+            nativeQuery = true)
+    List<AuditLatestRecordDto> findLatestPerEntityGroupWithUserByKey();
+}
