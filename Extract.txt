@@ -1,0 +1,21 @@
+import java.util.List;
+import java.util.stream.Collectors;
+
+public class ExtractionUtils {
+
+    // From a List<RoleResourceFlat> produce unique role names
+    public static List<String> extractUniqueRoleNames(List<RoleResourceFlat> rows) {
+        return rows.stream()
+                .map(RoleResourceFlat::getRoleName)
+                .distinct()
+                .collect(Collectors.toList());
+    }
+
+    // From a List<RoleResourceFlat> produce unique resource names
+    public static List<String> extractUniqueResourceNames(List<RoleResourceFlat> rows) {
+        return rows.stream()
+                .map(RoleResourceFlat::getResourceName)
+                .distinct()
+                .collect(Collectors.toList());
+    }
+}
