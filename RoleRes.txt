@@ -1,0 +1,27 @@
+package com.example.entitlement.repository;
+
+import com.example.entitlement.dto.RoleResourceDto;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface RoleResourceRepository extends CrudRepository<com.example.entitlement.model.Role, String> {
+
+    @Query("""
+        SELECT NEW com.example.entitlement.dto.RoleResourceDto(
+            r.id,
+            r.name,
+            res.name
+        )
+        FROM Role r
+        JOIN r.roleResourcePermissions rrp
+        JOIN rrp.resourcePermission rp
+        JOIN rp.resource res
+        WHERE r.id IN :roleIds
+    """)
+    List<RoleResourceDto> findRoleResourcesDtos(@Param("roleIds") List<String> roleIds);
+}
