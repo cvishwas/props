@@ -1,0 +1,30 @@
+// src/main/java/com/example/util/UserMergeUtil.java
+package com.example.util;
+
+import com.example.dto.MergedUserDto;
+import com.example.model.User; // or your actual User class
+
+public class UserMergeUtil {
+
+    // Assumes both objects are non-null; fields may be null in modifiedUser to denote "unchanged"
+    public static MergedUserDto mergeUsers(User originalUser, User modifiedUser) {
+        if (originalUser == null && modifiedUser == null) {
+            return null;
+        }
+        String userId = (originalUser != null) ? originalUser.getUserId() : null;
+        String username = resolve(originalUser != null ? originalUser.getUsername() : null,
+                                modifiedUser != null ? modifiedUser.getUsername() : null);
+        String firstName = resolve(originalUser != null ? originalUser.getFirstName() : null,
+                                   modifiedUser != null ? modifiedUser.getFirstName() : null);
+        String lastName = resolve(originalUser != null ? originalUser.getLastName() : null,
+                                modifiedUser != null ? modifiedUser.getLastName() : null);
+        String email = resolve(originalUser != null ? originalUser.getEmail() : null,
+                               modifiedUser != null ? modifiedUser.getEmail() : null);
+
+        return new MergedUserDto(userId, username, firstName, lastName, email);
+    }
+
+    private static <T> T resolve(T original, T modified) {
+        return (modified != null) ? modified : original;
+    }
+}
