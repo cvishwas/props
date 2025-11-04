@@ -1,0 +1,50 @@
+// src/main/java/com/example/mapper/RoleMapper.java
+package com.example.mapper;
+
+import com.example.dto.PermissionDto;
+import com.example.dto.RoleDto;
+import com.example.model.RoleEntity;
+import com.example.model.RoleResourcePermissionEntity;
+import com.example.model.ResourcePermissionEntity;
+import com.example.model.ResourceEntity;
+import com.example.model.PermissionEntity;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+public class RoleMapper {
+
+    public static RoleDto toDto(RoleEntity role) {
+        if (role == null) return null;
+
+        String roleId = role.getRoleId();
+        String roleName = role.getRoleName();
+        String roleDesc = role.getRoleDesc();
+
+        // Collect permissions from the roleResourcePermissions graph
+        List<PermissionDto> permDtos = new ArrayList<>();
+
+        if (role.getRoleResourcePermissions() != null) {
+            for (RoleResourcePermissionEntity rrp : role.getRoleResourcePermissions()) {
+                ResourcePermissionEntity rp = rrp.getResourcePermission();
+                if (rp != null && rp.getPermission() != null) {
+                    PermissionEntity p = rp.getPermission();
+                    // Build a PermissionDto
+                    permDtos.add(new PermissionDto(
+                            rp.getPermissionKey() == null ? null : rp.getPermissionKey(), // adjust field name if needed
+                            p.getPermissionName(),
+                            /*permissionDescription*/ p.getDescription() // adjust field if you have a description
+                    ));
+                }
+            }
+        }
+
+        // Deduplicate permissions if there can be duplicates due to multiple RoleResourcePermission entries
+        List<PermissionDto> uniquePerms = permDtos.stream()
+                .distinct() // you may want a custom equals/hashCode in PermissionDto for proper dedupe
+                .collect(Collectors.toList());
+
+        return new RoleDto(roleId, roleName, roleDesc, uniquePerms);
+    }
+}
