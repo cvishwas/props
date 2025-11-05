@@ -1,0 +1,124 @@
+// src/main/java/com/example/app/command/ProcessActionCommand.java
+package com.example.app.command;
+
+import com.example.app.context.ActionContext;
+
+public interface ProcessActionCommand {
+    void execute(ActionContext context);
+}
+
+// src/main/java/com/example/app/context/ActionContext.java
+package com.example.app.context;
+
+public class ActionContext {
+    private String action;
+    private Object payload;
+    // You can add more fields as needed (user, timestamps, domain objects)
+
+    public ActionContext() {}
+
+    public ActionContext(String action, Object payload) {
+        this.action = action;
+        this.payload = payload;
+    }
+
+    public String getAction() { return action; }
+    public void setAction(String action) { this.action = action; }
+
+    public Object getPayload() { return payload; }
+    public void setPayload(Object payload) { this.payload = payload; }
+}
+
+// EditCommand
+// src/main/java/com/example/app/command/EditCommand.java
+package com.example.app.command;
+
+import com.example.app.context.ActionContext;
+import org.springframework.stereotype.Component;
+
+@Component("edit")
+public class EditCommand implements ProcessActionCommand {
+    @Override
+    public void execute(ActionContext context) {
+        // Implement edit logic here
+        System.out.println("Executing EDIT with payload: " + context.getPayload());
+    }
+}
+
+// src/main/java/com/example/app/registry/CommandRegistry.java
+package com.example.app.registry;
+
+import com.example.app.command.ProcessActionCommand;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import java.util.Map;
+
+@Component
+public class CommandRegistry {
+
+    private final Map<String, ProcessActionCommand> commandMap;
+
+    @Autowired
+    public CommandRegistry(Map<String, ProcessActionCommand> commandMap) {
+        this.commandMap = commandMap;
+    }
+
+    public ProcessActionCommand getCommand(String action) {
+        if (action == null) {
+            throw new IllegalArgumentException("Action cannot be null");
+        }
+        ProcessActionCommand cmd = commandMap.get(action.toLowerCase());
+        if (cmd == null) {
+            throw new IllegalArgumentException("Unknown action: " + action);
+        }
+        return cmd;
+    }
+}
+
+// src/main/java/com/example/app/service/ProcessActionService.java
+package com.example.app.service;
+
+import com.example.app.context.ActionContext;
+import com.example.app.registry.CommandRegistry;
+import com.example.app.command.ProcessActionCommand;
+import org.springframework.stereotype.Service;
+
+@Service
+public class ProcessActionService {
+
+    private final CommandRegistry registry;
+
+    public ProcessActionService(CommandRegistry registry) {
+        this.registry = registry;
+    }
+
+    public void process(String action, Object payload) {
+        ActionContext ctx = new ActionContext(action, payload);
+        ProcessActionCommand command = registry.getCommand(action);
+        command.execute(ctx);
+    }
+}
+
+// src/main/java/com/example/app/controller/ActionController.java
+package com.example.app.controller;
+
+import com.example.app.service.ProcessActionService;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/actions")
+public class ActionController {
+
+    private final ProcessActionService service;
+
+    public ActionController(ProcessActionService service) {
+        this.service = service;
+    }
+
+    @PostMapping
+    public String processAction(@RequestParam String action, @RequestBody Object payload) {
+        service.process(action, payload);
+        return "Processed: " + action;
+    }
+}
