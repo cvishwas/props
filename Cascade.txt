@@ -1,0 +1,155 @@
+// User.java
+@Entity
+@Table(name = "users")
+public class User {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long userId;
+
+    private String username;
+    private String email;
+    // other user fields
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<UserRole> userRoles = new ArrayList<>();
+
+    // convenience methods
+    public void addRole(Role role) {
+        UserRole ur = new UserRole(this, role);
+        userRoles.add(ur);
+    }
+
+    public void removeRole(Role role) {
+        userRoles.removeIf(ur -> ur.getUser().equals(this) && ur.getRole().equals(role));
+        // Or locate by id and remove
+    }
+
+    // getters/setters
+}
+
+// UserRole.java
+@Entity
+@Table(name = "userroles") // or the actual join table name
+public class UserRole {
+
+    @EmbeddedId
+    private UserRoleId id = new UserRoleId();
+
+    @ManyToOne
+    @MapsId("userId")
+    @JoinColumn(name = "userid")
+    private User user;
+
+    @ManyToOne
+    @MapsId("roleId")
+    @JoinColumn(name = "roleid")
+    private Role role;
+
+    // constructors
+    public UserRole() {}
+
+    public UserRole(User user, Role role) {
+        this.user = user;
+        this.role = role;
+        this.id = new UserRoleId(user.getUserId(), role.getRoleId());
+    }
+
+    // getters/setters
+}
+
+// UserRoleId.java (composite key)
+@Embeddable
+public class UserRoleId implements Serializable {
+    private Long userId;
+    private Long roleId;
+
+    // constructors, equals, hashCode
+}
+
+// Role.java
+@Entity
+@Table(name = "roles")
+public class Role {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long roleId;
+
+    private String roleName;
+    // getters/setters
+}
+
+B
+
+// User.java
+@Entity
+@Table(name = "users")
+public class User {
+    @Id
+    private Long userId;
+    private String username;
+    // ...
+
+    @ManyToMany
+    @JoinTable(
+        name = "userroles",
+        joinColumns = @JoinColumn(name = "userid"),
+        inverseJoinColumns = @JoinColumn(name = "roleid")
+    )
+    private Set<Role> roles = new HashSet<>();
+}
+
+@Service
+@RequiredArgsConstructor
+public class UserService {
+
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+
+    @Transactional
+    public User updateUserAndRoles(UserUpdateDto dto) {
+        User user = userRepository.findById(dto.getUserId())
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+
+        // Update user fields
+        user.setUsername(dto.getUsername());
+        user.setEmail(dto.getEmail());
+        // update other fields as needed
+
+        // Sync roles
+        // Build a set of Roles from provided IDs
+        Set<Role> desiredRoles = new HashSet<>(roleRepository.findAllById(dto.getRoleIds()));
+
+        // If using association entity (Approach A), sync userRoles
+        // Remove roles not in desired set
+        user.getUserRoles().removeIf(ur -> !desiredRoles.contains(ur.getRole()));
+
+        // Add new roles that are missing
+        for (Role role : desiredRoles) {
+            boolean exists = user.getUserRoles().stream()
+                    .anyMatch(ur -> ur.getRole().equals(role));
+            if (!exists) {
+                UserRole ur = new UserRole(user, role);
+                user.getUserRoles().add(ur);
+            }
+        }
+
+        // Persist (cascade saves UserRoles due to CascadeType.ALL)
+        return userRepository.save(user);
+    }
+}
+
+@Transactional
+public User updateUserAndRolesSimple(Long userId, String username, String email, List<Long> roleIds) {
+    User user = userRepository.findById(userId)
+            .orElseThrow(() -> new EntityNotFoundException("User not found"));
+
+    user.setUsername(username);
+    user.setEmail(email);
+
+    Set<Role> roles = new HashSet<>(roleRepository.findAllById(roleIds));
+    user.setRoles(roles); // Hibernate will update the join table accordingly
+
+    return userRepository.save(user);
+}
