@@ -1,0 +1,611 @@
+Overview
+
+You're asking for two deliverables:
+
+A thread-safe LRU cache in Java (capacity 1000) for patient records, with:
+   LRU eviction
+   Metrics: hits, misses, evictions, latency
+   Concurrency handling (shared BloomFilter + SQLite DB with 10k records provided)
+   Passes included tests (assume unit tests exist)
+
+An Angular 17 dashboard:
+   Auto-refresh metrics every 2 seconds
+   Color-coded hit-rate cards
+   Charting of metrics
+   Controls to refresh/clear cache
+
+A written design for migrating to a distributed cache (centralized vs replicated and invalidation strategy)
+
+Below I provide:
+A Java implementation of a thread-safe LRU cache with metrics
+A minimal BloomFilter/SQLite integration stubs to show integration points (since the prompt mentions provided BloomFilter and SQLite DB)
+A sample Angular 17 dashboard scaffold (component, service, HTML, CSS) that fetches metrics, auto-refreshes, shows charts and controls
+A design section detailing migration strategies (centralized vs replicated, invalidation, consistency, failover)
+
+If you want, I can tailor the code to your exact project package names and test harness; here is a complete, ready-to-integrate approach.
+
+Part 1: Java LRU Cache with Metrics
+
+Key design decisions
+
+Use a LinkedHashMap with access-order to implement LRU eviction (via overriding removeEldestEntry).
+Wrap access in a ReadWriteLock-based concurrency policy to support concurrent reads and writes.
+Maintain atomic counters for hits, misses, evictions, and latency (per-operation latency in nanoseconds, aggregated).
+Integrate with BloomFilter (assumed provided) and SQLite (assumed provided) as integration points; the cache will:
+  On a miss: check BloomFilter first; if not present, return miss without DB hit.
+  If BloomFilter says possibly present, fetch from SQLite and then populate the cache.
+  On eviction: update eviction counter.
+Use a small synchronization scope to minimize contention: lock on the map during put/get but allow reads with a read lock.
+
+Java implementation
+
+// File: src/main/java/com/healthtech/cache/PatientCache.java
+package com.healthtech.cache;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.LongAdder;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReadWriteLock;
+
+public class PatientCache {
+    // Simple patient record placeholder; replace with your actual PatientRecord class
+    public static class PatientRecord {
+        public final String patientId;
+        public final String name;
+        public final int age;
+
+        public PatientRecord(String patientId, String name, int age) {
+            this.patientId = patientId;
+            this.name = name;
+            this.age = age;
+        }
+    }
+
+    // LRU cache: capacity 1000
+    private final int capacity;
+    private final LinkedHashMap cacheMap;
+
+    // Concurrency controls
+    private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
+    private final java.util.concurrent.locks.Lock r = rwLock.readLock();
+    private final java.util.concurrent.locks.Lock w = rwLock.writeLock();
+
+    // Metrics
+    private final LongAdder hits = new LongAdder();
+    private final LongAdder misses = new LongAdder();
+    private final LongAdder evictions = new LongAdder();
+    private final LongAdder latenciesNano = new LongAdder();
+
+    // Optional external components (BloomFilter and SQLite accessors)
+    // Assuming interfaces BloomFilter and SQLiteProvider are provided elsewhere
+    private final BloomFilter bloomFilter;
+    private final SQLiteProvider sqliteProvider;
+
+    public PatientCache(int capacity, BloomFilter bloomFilter, SQLiteProvider sqliteProvider) {
+        if (capacity  0");
+        this.capacity = capacity;
+        this.bloomFilter = bloomFilter;
+        this.sqliteProvider = sqliteProvider;
+        // LinkedHashMap with accessOrder = true to implement LRU
+        this.cacheMap = new LinkedHashMap(capacity, 0.75f, true) {
+            @Override
+            protected boolean removeEldest(Map.Entry eldest) {
+                boolean evict = size() > PatientCache.this.capacity;
+                if (evict) evictions.increment();
+                return evict;
+            }
+        };
+    }
+
+    // Retrieve by patientId
+    public PatientRecord get(String patientId) {
+        long start = System.nanoTime();
+        r.lock();
+        try {
+            PatientRecord rec = cacheMap.get(patientId);
+            if (rec != null) {
+                hits.increment();
+                return rec;
+            }
+        } finally {
+            r.unlock();
+        }
+
+        // Miss: consult BloomFilter and possibly DB
+        // Acquire write lock to populate
+        w.lock();
+        try {
+            // Check again under write lock to avoid race
+            PatientRecord rec = cacheMap.get(patientId);
+            if (rec != null) {
+                hits.increment();
+                return rec;
+            }
+
+            misses.increment();
+
+            boolean possiblyPresent = bloomFilter.mightContain(patientId);
+            if (!possiblyPresent) {
+                // definitely not present
+                recordLatency(start);
+                return null;
+            }
+
+            // Fetch from SQLite (or from DB layer)
+            rec = sqliteProvider.fetchFromDb(patientId);
+            if (rec != null) {
+                cacheMap.put(patientId, rec);
+            }
+            recordLatency(start);
+            return rec;
+        } finally {
+            w.unlock();
+        }
+    }
+
+    // Put a new record (manual insert)
+    public void put(String patientId, PatientRecord record) {
+        long start = System.nanoTime();
+        w.lock();
+        try {
+            cacheMap.put(patientId, record);
+        } finally {
+            w.unlock();
+        }
+        recordLatency(start);
+    }
+
+    // Invalidate a particular entry
+    public void invalidate(String patientId) {
+        w.lock();
+        try {
+            if (cacheMap.remove(patientId) != null) {
+                // no explicit eviction counter here since LinkedHashMap eviction is counted on removeEldest
+            }
+        } finally {
+            w.unlock();
+        }
+    }
+
+    // Clear entire cache
+    public void clear() {
+        w.lock();
+        try {
+            int size = cacheMap.size();
+            cacheMap.clear();
+            // count as evictions for existing entries
+            evictions.add(size);
+        } finally {
+            w.unlock();
+        }
+    }
+
+    // Metrics getters
+    public long getHits() { return hits.sum(); }
+    public long getMisses() { return misses.sum(); }
+    public long getEvictions() { return evictions.sum(); }
+    public long getLatencyNanos() { return latenciesNano.sum(); }
+
+    public double getHitRate() {
+        long h = hits.sum();
+        long m = misses.sum();
+        long total = h + m;
+        return total == 0 ? 0.0 : (double) h / total;
+    }
+
+    private void recordLatency(long start) {
+        long delta = System.nanoTime() - start;
+        latenciesNano.add(delta);
+    }
+
+    // Simple interfaces (placeholders). Replace with your actual implementations.
+    public interface BloomFilter {
+        boolean mightContain(String key);
+    }
+
+    public interface SQLiteProvider {
+        PatientRecord fetchFromDb(String patientId);
+    }
+
+    // For testing convenience: expose internal size
+    public int size() {
+        w.lock();
+        try {
+            return cacheMap.size();
+        } finally {
+            w.unlock();
+        }
+    }
+
+}
+
+Notes and integration points
+
+BloomFilter and SQLiteProvider are assumed to be provided by your codebase. The cache uses them as follows:
+  On miss, check bloomFilter.mightContain(patientId). If false, return null (miss).
+  If bloomFilter says maybe present, fetch from DB via sqliteProvider.fetchFromDb(patientId), then cache it.
+Evictions are captured in the LinkedHashMap via removeEldestEntry. We increment the eviction counter in the overridden method.
+Thread-safety: read operations use a read lock; cache population and eviction use a write lock to ensure correctness. This minimizes contention for reads.
+Latency tracking: per-operation latency is captured; you can expose a percentile or historical view in your dashboard.
+Tests: ensure you have test coverage for:
+  Invariant: capacity not exceeded
+  Eviction behavior
+  Concurrency: concurrent gets/puts
+  Latency metrics updated
+  Correct integration with BloomFilter/SQLite stubs
+
+Part 2: Angular 17 Cache-Monitor Dashboard
+
+I provide a lightweight Angular 17 structure that auto-refreshes every 2 seconds, displays a color-coded hit-rate card, a basic line chart for hits/misses/evictions, and controls to refresh/clear.
+This is a scaffold. Integrate with your actual REST endpoints for metrics, and replace placeholder services with your real API clients.
+
+Project structure (snippet)
+
+src/app/
+  app.module.ts
+  cache-monitor/
+    cache-monitor.component.ts
+    cache-monitor.component.html
+    cache-monitor.component.css
+    cache-monitor.service.ts
+  shared/
+    models.ts
+    charts/
+      line-chart.component.ts
+      line-chart.component.html
+  assets/
+    (optional styling assets)
+
+cache-monitor.component.ts
+
+// File: src/app/cache-monitor/cache-monitor.component.ts
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { CacheMonitorService } from './cache-monitor.service';
+import { Subscription, timer } from 'rxjs';
+
+interface MetricSample {
+  timestamp: number;
+  hits: number;
+  misses: number;
+  evictions: number;
+  latencyNanos: number;
+  hitRate: number;
+}
+
+@Component({
+  selector: 'app-cache-monitor',
+  templateUrl: './cache-monitor.component.html',
+  styleUrls: ['./cache-monitor.component.css']
+})
+export class CacheMonitorComponent implements OnInit, OnDestroy {
+  samples: MetricSample[] = [];
+  subscription!: Subscription;
+  autoRefreshMs = 2000;
+  loading = false;
+
+  constructor(private cms: CacheMonitorService) {}
+
+  ngOnInit(): void {
+    // initial fetch
+    this.refresh();
+
+    // auto-refresh every 2 seconds
+    this.subscription = timer(0, this.autoRefreshMs).subscribe(() => this.refresh());
+  }
+
+  ngOnDestroy(): void {
+    this.subscription?.unsubscribe();
+  }
+
+  refresh(): void {
+    this.loading = true;
+    this.cms.fetchLatestMetrics().subscribe(data => {
+      const s: MetricSample = {
+        timestamp: Date.now(),
+        hits: data.hits,
+        misses: data.misses,
+        evictions: data.evictions,
+        latencyNanos: data.latencyNanos,
+        hitRate: data.hitRate,
+      };
+      this.samples.push(s);
+      // keep last 60 samples for trend
+      if (this.samples.length > 60) this.samples.shift();
+      this.loading = false;
+    }, () => this.loading = false);
+  }
+
+  clearCache(): void {
+    this.cms.clearCache().subscribe(() => {
+      // reset samples to reflect cleared state
+      this.samples = [];
+    });
+  }
+
+  // helper getters for UI
+  get latest() : MetricSample | undefined {
+    return this.samples[this.samples.length - 1];
+  }
+
+}
+
+cache-monitor.component.html
+
+  HealthTech EHR Cache Monitor
+
+    = 0.9" *ngIf="latest">
+      Hit Rate
+      = 0.9 ? '#0a9d4f' : '#d97706'">
+        {{ (latest?.hitRate ?? 0) * 100 | number:'1.0-1' }}%
+
+      Recent
+
+      Hits
+      {{ latest?.hits | number }}
+      Total hits
+
+      Misses
+      {{ latest?.misses | number }}
+      Total misses
+
+      Evictions
+      {{ latest?.evictions | number }}
+      Evictions
+
+    Refresh Now
+    Clear Cache
+    Auto-refresh every 2s
+
+cache-monitor.component.css
+
+.dashboard {
+  padding: 16px;
+  font-family: Arial, sans-serif;
+}
+.cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.card {
+  background: #1e1e2d;
+  color: #fff;
+  padding: 14px;
+  border-radius: 8px;
+  text-align: center;
+  border: 1px solid #2a2a3a;
+}
+.card.ok { border-color: #1e9e63; }
+.label { font-size: 12px; color: #b6b6b6; }
+.value { font-size: 22px; font-weight: bold; margin: 6px 0; }
+.sub { font-size: 11px; color: #c3c3c3; }
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+.chart-panel {
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid #e5e5e5;
+}
+
+.controls {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+button {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: none;
+  background: #2563eb;
+  color: #fff;
+  cursor: pointer;
+}
+button[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.hint { color: #555; font-size: 12px; }
+
+cache-monitor.service.ts
+
+// File: src/app/cache-monitor/cache-monitor.service.ts
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
+
+interface MetricsResponse {
+  hits: number;
+  misses: number;
+  evictions: number;
+  latencyNanos: number;
+  hitRate?: number;
+}
+
+@Injectable({
+  providedIn: 'root'
+})
+export class CacheMonitorService {
+  private apiBase = '/api/cache'; // adjust to your backend path
+
+  constructor(private http: HttpClient) {}
+
+  fetchLatestMetrics(): Observable {
+    // Replace with real endpoint
+    return this.http.get(${this.apiBase}/metrics).pipe(
+      catchError(() => {
+        // Fallback: return zeros to keep UI functional during outages
+        return of({ hits: 0, misses: 0, evictions: 0, latencyNanos: 0, hitRate: 0 });
+      })
+    );
+  }
+
+  clearCache(): Observable {
+    return this.http.post(${this.apiBase}/clear, {});
+  }
+}
+
+app module and chart component (sketch)
+
+Add HttpClientModule to AppModule.
+Implement a simple line chart component (or use a library like Chart.js via ng2-charts). A minimal internal component:
+
+// File: src/app/shared/charts/line-chart.component.ts
+import { Component, Input, OnInit, OnChanges, SimpleChanges } from '@angular/core';
+
+@Component({
+  selector: 'app-line-chart',
+  template: `
+
+  `
+})
+export class LineChartComponent implements OnInit, OnChanges {
+  @Input() points: { x: number; y: number; label?: string }[] = [];
+  @Input() label: string = '';
+
+  canvasId = 'chart-' + Math.random().toString(36).substring(2);
+
+  ngOnInit(): void { this.render(); }
+  ngOnChanges(): void { this.render(); }
+
+  private render(): void {
+    const canvas = document.getElementById(this.canvasId) as HTMLCanvasElement;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Simple redraw (placeholder): clear and draw a basic line from points
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (!this.points || this.points.length  p.y), 1);
+    const minY = Math.min(...this.points.map(p => p.y), 0);
+    const rangeY = maxY - minY || 1;
+
+    ctx.beginPath();
+    this.points.forEach((p, i) => {
+      const x = (i / (this.points.length - 1)) * w;
+      const y = h - ((p.y - minY) / rangeY) * h;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = '#2563eb';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+}
+
+Remember to declare and export components in your module accordingly.
+
+Notes on Angular integration
+
+You’ll need to implement the actual backend endpoint /api/cache/metrics to serve:
+  hits, misses, evictions, latencyNanos, hitRate
+Auto-refresh uses RxJS timer to trigger fetch every 2 seconds.
+Color-coding: compute hit rate and apply classes or inline styles accordingly.
+
+Part 3: Design for Migrating to a Distributed Cache
+
+You asked for a written design covering centralized vs replicated caches and invalidation strategies. Here is a structured plan.
+
+Goals
+
+Improve scalability, fault tolerance, and latency for EHR read-heavy patterns.
+Preserve correctness: ensure cache coherence and reasonable staleness bounds.
+Minimize DB load while maintaining data integrity for patient records.
+
+1) Architectural options
+
+Option A: Centralized distributed cache (one logical cache tier, partitioned/supporting multiple nodes)
+
+A single logical cache tier composed of multiple cache nodes (e.g., Redis Cluster, Memcached cluster) with sharding/partitioning.
+Clients connect to a single endpoint or a service mesh abstracts multiple nodes.
+Pros:
+  Simple uniform cache policy and invalidation.
+  Stronger data locality within a cluster; high hit rate.
+  Built-in replication/failover in many vendors.
+Cons:
+  Single point of failure if not deployed with proper replication.
+  Network hop latency across cluster, potential cross-node traffic if not partitioned well.
+
+Option B: Replicated (fully replicated) cache across data centers
+
+Each data center/node maintains a full copy of the cache data.
+Reads are local; writes propagate to all replicas.
+Pros:
+  Ultra-low latency reads for local clients.
+  Tolerant to regional outages if replication is robust.
+Cons:
+  Write amplification and replication traffic; more complex consistency.
+  Potential for stale data if writes are not propagated quickly.
+
+Option C: Hybrid (sharded with regional replicas)
+
+Shard by key (e.g., patientId hash) with each shard replicated within region.
+Local reads hit local shard; cross-region reads route to appropriate shard.
+Invalidation/invalidation propagation across replicas.
+
+Recommendation for HealthTech EHR:
+Start with a centralized, highly available cache (e.g., Redis Cluster) with persistent storage option if needed, and built-in eviction policy.
+Use a write-through or write-behind strategy tied to the EHR write path to ensure cache refresh on updates.
+
+2) Invalidation and coherence strategies
+
+Eventual consistency with bounded staleness:
+  Accept small staleness (e.g., seconds) to maximize performance.
+Invalidation approaches:
+  Time-to-live (TTL): set TTL per entry based on data criticality; patient records expire after a configured interval (e.g., 30s–5m depending on data sensitivity).
+  Explicit invalidation: on writes/updates to SQLite database or BloomFilter update path, publish an invalidation message (e.g., via Kafka, Redis Pub/Sub) to invalidate the affected key in the cache.
+  Read-through + Write-through: on updates, simultaneously write to DB and cache (cache updated or invalidated). For write-through, the cache is updated synchronously; for write-behind, update cache asynchronously with a durable queue.
+Invalidation propagation:
+  Use a messaging system (Kafka/Rirebase) to propagate invalidation events to all cache nodes in the cluster.
+  Implement idempotent invalidation: repeated invalidation messages should be safe.
+
+3) Consistency and correctness
+
+Strong reads for critical data: configure a low TTL or an explicit read path bypassing cache (read from DB) if freshness is paramount.
+Stale data risk management:
+  Add a metadata flag on cached entries: lastUpdatedTimestamp; clients can decide if they need fresh data.
+  If a policy requires strict consistency, add a feature flag to bypass cache for certain sensitive reads.
+Cache warm-up: pre-load commonly accessed patient records (e.g., top 10k most active patients) on startup or after failover.
+
+4) Operational considerations
+
+Observability: metrics for cache hits, misses, evictions, latency, TTL expirations, invalidation rate, replication lag.
+Failure handling: graceful degradation when cache is unavailable; fallback to DB with increased latency.
+Security: ensure patient identifiers in the cache keys are designed to prevent leakage; encrypt sensitive payloads if required.
+Compliance: align with HIPAA/HealthNet security requirements for caching sensitive health data.
+
+5) Migration plan (phased)
+
+Phase 1 – Assess and replace:
+Replace current LRU cache with a centralized, vendor-supported distributed cache (e.g., Redis Cluster) with TTLs and a write-through policy for critical reads/writes.
+Implement BloomFilter compatibility layer to cache-level false positives and reduce unnecessary DB hits.
+
+Phase 2 – Invalidation & observability:
+Introduce invalidation messages for updates (DB -> Cache).
+Add metrics dashboards for cache health, hit rate, eviction, TTL purge rates, and replication lag.
+
+Phase 3 – Replication extension:
+If regional latency becomes a concern, consider regional replicas with per-region routing.
+Introduce a regional invalidation bus to minimize cross-region traffic.
+
+Phase 4 – Hardening and failover:
+Test disaster recovery, failover between cache clusters, and ensure write-through pipeline remains consistent.
+
+Phase 5 – Performance tuning:
+Optimize TTL, eviction policies, and memory sizing based on production load.
+
+How to Proceed
+
+Integrate the Java LRU cache into your codebase, replacing or wrapping your existing caching layer.
+Implement the BloomFilter and SQLiteProvider interfaces with your actual implementations or adapt the placeholders to your project.
+Build the Angular dashboard against your backend API that serves metrics. If you already have a metrics microservice, wire the service to its endpoints; otherwise, create a lightweight API to expose hits/misses/evictions/latency.
+For migration, start with a centralized cache (Redis) and apply the invalidation strategy via a messaging system. Plan a staged migration as described.
+
+If you’d like, I can tailor the code to specific class names, package structures, or test harnesses you have, and generate a ready-to-run Git repository layout with Maven/Gradle configuration and Angular CLI project setup.
